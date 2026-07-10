@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Task Manager</h1>
+        
+        <!-- Add Task Form -->
+        <div class="add-task">
+            <input type="text" id="taskInput" placeholder="Enter task title..." />
+            <select id="statusSelect">
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+            </select>
+            <button onclick="addTask()">Add Task</button>
+        </div>
+
+        <!-- Task List -->
+        <div id="taskList">
+            <div class="loading">Loading tasks...</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
