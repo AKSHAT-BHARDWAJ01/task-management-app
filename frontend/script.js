@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api/tasks';
+const API_URL = 'http://localhost:8000/api/tasks';
 
 // Load tasks when page loads
 document.addEventListener('DOMContentLoaded', loadTasks);
