@@ -21,6 +21,7 @@ async function request(path = "", options = {}) {
 
 export const taskApi = {
   getAll: () => request(),
+  getStats: () => request("/stats"),
   create: (task) =>
     request("", { method: "POST", body: JSON.stringify(task) }),
   update: (id, task) =>
