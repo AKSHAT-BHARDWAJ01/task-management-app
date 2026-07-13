@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 
-const emptyTask = { title: "", description: "", status: "pending" };
+const emptyTask = {
+  title: "",
+  description: "",
+  status: "pending",
+  priority: "medium",
+  start_date: "",
+  due_date: "",
+  category: "",
+};
+
+function dateInputValue(value) {
+  return value ? value.slice(0, 10) : "";
+}
 
 export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
   const [values, setValues] = useState(emptyTask);
@@ -9,7 +21,15 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
   useEffect(() => {
     setValues(
       task
-        ? { title: task.title, description: task.description ?? "", status: task.status }
+        ? {
+          title: task.title,
+          description: task.description ?? "",
+          status: task.status,
+          priority: task.priority,
+          start_date: dateInputValue(task.startDate),
+          due_date: dateInputValue(task.dueDate),
+          category: task.category ?? "",
+        }
         : emptyTask,
     );
     setFormError("");
@@ -28,7 +48,13 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
     }
 
     setFormError("");
-    const saved = await onSubmit({ ...values, title: values.title.trim() });
+    const saved = await onSubmit({
+      ...values,
+      title: values.title.trim(),
+      start_date: values.start_date ? `${values.start_date}T00:00:00` : null,
+      due_date: values.due_date ? `${values.due_date}T00:00:00` : null,
+      category: values.category.trim() || null,
+    });
     if (saved && !task) setValues(emptyTask);
   }
 
@@ -75,6 +101,55 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
           <option value="in-progress">In progress</option>
           <option value="completed">Completed</option>
         </select>
+
+        <label htmlFor="priority">Priority</label>
+        <select
+          id="priority"
+          name="priority"
+          value={values.priority}
+          onChange={updateValue}
+          disabled={isSaving}
+        >
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+
+        <div className="date-fields">
+          <div>
+            <label htmlFor="start_date">Start date <span>(optional)</span></label>
+            <input
+              id="start_date"
+              name="start_date"
+              type="date"
+              value={values.start_date}
+              onChange={updateValue}
+              disabled={isSaving}
+            />
+          </div>
+          <div>
+            <label htmlFor="due_date">Due date <span>(optional)</span></label>
+            <input
+              id="due_date"
+              name="due_date"
+              type="date"
+              value={values.due_date}
+              onChange={updateValue}
+              disabled={isSaving}
+            />
+          </div>
+        </div>
+
+        <label htmlFor="category">Category <span>(optional)</span></label>
+        <input
+          id="category"
+          name="category"
+          value={values.category}
+          onChange={updateValue}
+          placeholder="e.g. Work, Personal, Study"
+          maxLength="100"
+          disabled={isSaving}
+        />
 
         {formError && <p className="form-error" role="alert">{formError}</p>}
 
