@@ -35,6 +35,15 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
     setFormError("");
   }, [task]);
 
+  useEffect(() => {
+    function closeOnEscape(event) {
+      if (event.key === "Escape" && !isSaving) onCancel();
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isSaving, onCancel]);
+
   function updateValue(event) {
     const { name, value } = event.target;
     setValues((current) => ({ ...current, [name]: value }));
@@ -48,122 +57,83 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
     }
 
     setFormError("");
-    const saved = await onSubmit({
+    await onSubmit({
       ...values,
       title: values.title.trim(),
       start_date: values.start_date ? `${values.start_date}T00:00:00` : null,
       due_date: values.due_date ? `${values.due_date}T00:00:00` : null,
       category: values.category.trim() || null,
     });
-    if (saved && !task) setValues(emptyTask);
   }
 
   return (
-    <section className="task-form-card" aria-labelledby="form-heading">
-      <div>
-        <p className="eyebrow">{task ? "Update task" : "New task"}</p>
-        <h2 id="form-heading">{task ? "Edit your task" : "Add a task"}</h2>
-      </div>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="title">Title</label>
-        <input
-          id="title"
-          name="title"
-          value={values.title}
-          onChange={updateValue}
-          placeholder="e.g. Review project requirements"
-          maxLength="200"
-          disabled={isSaving}
-          required
-        />
-
-        <label htmlFor="description">Description <span>(optional)</span></label>
-        <textarea
-          id="description"
-          name="description"
-          value={values.description}
-          onChange={updateValue}
-          placeholder="Add a few helpful details"
-          maxLength="500"
-          rows="4"
-          disabled={isSaving}
-        />
-
-        <label htmlFor="status">Status</label>
-        <select
-          id="status"
-          name="status"
-          value={values.status}
-          onChange={updateValue}
-          disabled={isSaving}
-        >
-          <option value="pending">Pending</option>
-          <option value="in-progress">In progress</option>
-          <option value="completed">Completed</option>
-        </select>
-
-        <label htmlFor="priority">Priority</label>
-        <select
-          id="priority"
-          name="priority"
-          value={values.priority}
-          onChange={updateValue}
-          disabled={isSaving}
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-
-        <div className="date-fields">
+    <div className="modal-backdrop" role="presentation" onMouseDown={!isSaving ? onCancel : undefined}>
+      <section
+        className="task-modal"
+        aria-labelledby="form-heading"
+        aria-modal="true"
+        role="dialog"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="modal-heading">
           <div>
-            <label htmlFor="start_date">Start date <span>(optional)</span></label>
-            <input
-              id="start_date"
-              name="start_date"
-              type="date"
-              value={values.start_date}
-              onChange={updateValue}
-              disabled={isSaving}
-            />
+            <p className="eyebrow">{task ? "Update task" : "Create task"}</p>
+            <h2 id="form-heading">{task ? "Edit task details" : "Add a new task"}</h2>
           </div>
-          <div>
-            <label htmlFor="due_date">Due date <span>(optional)</span></label>
-            <input
-              id="due_date"
-              name="due_date"
-              type="date"
-              value={values.due_date}
-              onChange={updateValue}
-              disabled={isSaving}
-            />
-          </div>
+          <button className="close-button" type="button" onClick={onCancel} disabled={isSaving} aria-label="Close task form">×</button>
         </div>
 
-        <label htmlFor="category">Category <span>(optional)</span></label>
-        <input
-          id="category"
-          name="category"
-          value={values.category}
-          onChange={updateValue}
-          placeholder="e.g. Work, Personal, Study"
-          maxLength="100"
-          disabled={isSaving}
-        />
+        <form onSubmit={handleSubmit}>
+          <div className="form-field form-field-wide">
+            <label htmlFor="title">Title</label>
+            <input id="title" name="title" value={values.title} onChange={updateValue} placeholder="What needs to be done?" maxLength="200" disabled={isSaving} required autoFocus />
+          </div>
 
-        {formError && <p className="form-error" role="alert">{formError}</p>}
+          <div className="form-field form-field-wide">
+            <label htmlFor="description">Description <span>(optional)</span></label>
+            <textarea id="description" name="description" value={values.description} onChange={updateValue} placeholder="Add helpful context for this task" maxLength="500" rows="4" disabled={isSaving} />
+          </div>
 
-        <div className="form-actions">
-          <button className="primary-button" type="submit" disabled={isSaving}>
-            {isSaving ? "Saving…" : task ? "Save changes" : "Add task"}
-          </button>
-          {task && (
-            <button className="text-button" type="button" onClick={onCancel} disabled={isSaving}>
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
-    </section>
+          <div className="form-grid">
+            <div className="form-field">
+              <label htmlFor="status">Status</label>
+              <select id="status" name="status" value={values.status} onChange={updateValue} disabled={isSaving}>
+                <option value="pending">Pending</option>
+                <option value="in-progress">In progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="priority">Priority</label>
+              <select id="priority" name="priority" value={values.priority} onChange={updateValue} disabled={isSaving}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="start_date">Start date <span>(optional)</span></label>
+              <input id="start_date" name="start_date" type="date" value={values.start_date} onChange={updateValue} disabled={isSaving} />
+            </div>
+            <div className="form-field">
+              <label htmlFor="due_date">Due date <span>(optional)</span></label>
+              <input id="due_date" name="due_date" type="date" value={values.due_date} onChange={updateValue} disabled={isSaving} />
+            </div>
+          </div>
+
+          <div className="form-field form-field-wide">
+            <label htmlFor="category">Category <span>(optional)</span></label>
+            <input id="category" name="category" value={values.category} onChange={updateValue} placeholder="e.g. Work, Personal, Study" maxLength="100" disabled={isSaving} />
+          </div>
+
+          {formError && <p className="form-error" role="alert">{formError}</p>}
+
+          <div className="form-actions">
+            <button className="secondary-button" type="button" onClick={onCancel} disabled={isSaving}>Cancel</button>
+            <button className="primary-button" type="submit" disabled={isSaving}>{isSaving ? "Saving…" : task ? "Save changes" : "Create task"}</button>
+          </div>
+        </form>
+      </section>
+    </div>
   );
 }
