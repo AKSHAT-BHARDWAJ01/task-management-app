@@ -1,1 +1,1 @@
-"""HTTP route blueprints."""
+"""HTTP route modules."""

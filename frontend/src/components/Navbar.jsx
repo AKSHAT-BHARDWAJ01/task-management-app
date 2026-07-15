@@ -5,7 +5,8 @@ const navigationItems = [
   { id: "settings", icon: "⚙", label: "Settings" },
 ];
 
-export function Navbar({ activeView, onNavigate }) {
+export function Navbar({ activeView, currentUser, onNavigate, onLogout }) {
+  const name = currentUser?.name || "Workspace owner";
   return (
     <aside className="sidebar">
       <a className="brand" href="#dashboard" aria-label="TaskFlow dashboard">
@@ -28,11 +29,12 @@ export function Navbar({ activeView, onNavigate }) {
       </nav>
 
       <div className="sidebar-profile">
-        <span className="profile-avatar" aria-hidden="true">A</span>
+        <span className="profile-avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
         <span>
-          <strong>Akshat</strong>
+          <strong>{name}</strong>
           <small>Workspace owner</small>
         </span>
+        <button className="logout-button" type="button" onClick={onLogout} aria-label="Log out">↪</button>
       </div>
     </aside>
   );
