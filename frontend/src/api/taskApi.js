@@ -1,5 +1,7 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/tasks";
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const API_BASE_URL = configuredBaseUrl.endsWith("/tasks")
+  ? configuredBaseUrl
+  : `${configuredBaseUrl}/tasks`;
 const AUTH_BASE_URL = API_BASE_URL.replace(/\/tasks$/, "/auth");
 const TOKEN_STORAGE_KEY = "taskflow-access-token";
 const USER_STORAGE_KEY = "taskflow-current-user";

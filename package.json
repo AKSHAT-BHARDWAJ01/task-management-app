@@ -1,0 +1,8 @@
+{
+  "name": "task-manager-app",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "deploy": "vercel --prod"
+  }
+}
