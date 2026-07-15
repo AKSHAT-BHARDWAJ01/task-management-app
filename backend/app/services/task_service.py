@@ -4,16 +4,16 @@ from sqlalchemy.orm import Session
 from app.models import Task
 
 
-def list_tasks(db: Session) -> list[Task]:
-    return list(db.query(Task).all())
+def list_tasks(db: Session, user_id: int) -> list[Task]:
+    return list(db.query(Task).filter(Task.user_id == user_id).all())
 
 
-def get_task(db: Session, task_id: int) -> Task | None:
-    return db.get(Task, task_id)
+def get_task(db: Session, user_id: int, task_id: int) -> Task | None:
+    return db.scalar(select(Task).where(Task.id == task_id, Task.user_id == user_id))
 
 
-def create_task(db: Session, data: dict) -> Task:
-    task = Task(**data)
+def create_task(db: Session, user_id: int, data: dict) -> Task:
+    task = Task(user_id=user_id, **data)
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -43,7 +43,7 @@ def delete_task(db: Session, task: Task) -> None:
     db.commit()
 
 
-def get_task_stats(db: Session) -> dict[str, int]:
+def get_task_stats(db: Session, user_id: int) -> dict[str, int]:
     """Return aggregate task counts for the dashboard."""
     counts = db.execute(
         select(
@@ -66,6 +66,6 @@ def get_task_stats(db: Session) -> dict[str, int]:
             func.coalesce(func.sum(case((Task.priority == "low", 1), else_=0)), 0).label(
                 "low_priority_count"
             ),
-        )
+        ).where(Task.user_id == user_id)
     ).mappings().one()
     return dict(counts)
