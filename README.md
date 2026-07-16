@@ -93,29 +93,25 @@ taskflow/
 
 # 🚀 Getting Started
 
-## Prerequisites
+## Clone Repository
 
-- Python 3.11+
-- Node.js 18+
-- Git
+```bash
+git clone https://github.com/YOUR_USERNAME/TaskFlow.git
+
+cd TaskFlow
+```
 
 ---
 
 # Backend Setup
 
-Navigate to backend
-
 ```bash
 cd backend
-```
 
-Create virtual environment
-
-```bash
 python -m venv .venv
 ```
 
-Activate
+### Activate Virtual Environment
 
 Windows
 
@@ -129,25 +125,25 @@ Linux / macOS
 source .venv/bin/activate
 ```
 
-Install dependencies
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run server
+### Run Backend
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Backend will run at
+Backend URL
 
 ```
 http://localhost:8000
 ```
 
-Swagger Documentation
+Swagger API Docs
 
 ```
 http://localhost:8000/docs
@@ -157,25 +153,15 @@ http://localhost:8000/docs
 
 # Frontend Setup
 
-Navigate to frontend
-
 ```bash
 cd frontend
-```
 
-Install packages
-
-```bash
 npm install
-```
 
-Run
-
-```bash
 npm run dev
 ```
 
-Frontend
+Frontend URL
 
 ```
 http://localhost:5173
@@ -183,212 +169,112 @@ http://localhost:5173
 
 ---
 
-# API Endpoints
+# 📌 API Endpoints
 
-## Get all tasks
-
-```http
-GET /api/tasks
-```
-
----
-
-## Get task
-
-```http
-GET /api/tasks/{id}
-```
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/tasks` | Get all tasks |
+| GET | `/api/tasks/{id}` | Get task by ID |
+| POST | `/api/tasks` | Create task |
+| PUT | `/api/tasks/{id}` | Update task |
+| DELETE | `/api/tasks/{id}` | Delete task |
 
 ---
 
-## Create task
-
-```http
-POST /api/tasks
-```
-
-Example
-
-```json
-{
-  "title": "Build README",
-  "description": "Complete project documentation",
-  "status": "pending"
-}
-```
-
----
-
-## Update task
-
-```http
-PUT /api/tasks/{id}
-```
-
----
-
-## Delete task
-
-```http
-DELETE /api/tasks/{id}
-```
-
----
-
-# Task Model
+# 🗃 Task Model
 
 | Field | Type | Required |
 |---------|------|----------|
-| id | Integer | Auto |
+| id | Integer | Auto Generated |
 | title | String | ✅ |
 | description | String | Optional |
 | status | pending / in-progress / completed | ✅ |
-| createdAt | DateTime | Auto |
-| updatedAt | DateTime | Auto |
+| createdAt | DateTime | Auto Generated |
+| updatedAt | DateTime | Auto Updated |
 
 ---
 
-# Technical Decisions
+# 💡 Technical Decisions
 
-## FastAPI
+### FastAPI
 
-Chosen for
-
-- High performance
+- High-performance backend
 - Automatic Swagger documentation
-- Easy validation with Pydantic
-- Clean API development
+- Built-in request validation
+- Easy REST API development
 
----
-
-## React
-
-Chosen because
+### React
 
 - Component-based architecture
-- Easy state management
 - Fast development with Vite
+- Reusable UI components
 
----
-
-## SQLite
-
-Chosen because
+### SQLite
 
 - Lightweight
-- No installation required
-- Perfect for small applications and take-home assignments
+- No additional server setup
+- Ideal for development and take-home assignments
 
----
+### Layered Architecture
 
-## Layered Architecture
-
-The backend follows a layered architecture.
+The backend follows a layered architecture:
 
 ```
 Client
-
-↓
-
-Router
-
-↓
-
-Service
-
-↓
-
+   ↓
+Routers
+   ↓
+Services
+   ↓
 Database
 ```
 
-This improves readability, scalability, and maintainability.
+This separation improves maintainability and scalability.
 
 ---
 
-# Validation
+# ✅ Validation & Error Handling
 
-The application validates
+- Required field validation
+- Invalid status validation
+- Meaningful error messages
+- Proper HTTP status codes
 
-- Required title
-- Allowed task status
-- Invalid task IDs
-- Empty requests
-- Invalid data types
-
----
-
-# Error Handling
-
-Returns proper HTTP status codes
-
-| Code | Meaning |
-|------|----------|
-|200|Success|
-|201|Created|
-|400|Bad Request|
-|404|Task Not Found|
-|500|Internal Server Error|
+| Status Code | Meaning |
+|--------------|---------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Bad Request |
+| 404 | Task Not Found |
+| 500 | Internal Server Error |
 
 ---
 
-# Future Improvements
+# 🚀 Future Improvements
 
 - User Authentication
 - Task Categories
-- Search & Filtering
-- Pagination
-- Dark/Light Theme
-- Docker Deployment
-- Unit Testing
-- CI/CD
+- Search & Filters
+- Due Dates
 - Notifications
+- Docker Support
+- Unit Testing
+- CI/CD Pipeline
 
 ---
 
-# Git Workflow
+# 📜 License
 
-The project was developed with meaningful commits showing incremental progress.
-
-Examples
-
-```
-Initialize FastAPI backend
-
-Configure SQLite database
-
-Implement CRUD API endpoints
-
-Add task validation
-
-Initialize React frontend
-
-Connect frontend with backend
-
-Improve UI styling
-
-Write project documentation
-```
+This project was developed as part of a Full-Stack Developer technical assessment.
 
 ---
 
-# Author
+<div align="center">
 
-**Akshat Bhardwaj**
+### ⭐ If you found this project helpful, consider giving it a star!
 
-GitHub
+Made with ❤️ by **Akshat Bhardwaj**
 
-```
-https://github.com/AKSHAT-BHARDWAJ01
-```
+[GitHub](https://github.com/AKSHAT-BHARDWAJ01) • [LinkedIn](https://www.linkedin.com/in/akshat-bhardwaj-84bb52271/)
 
-LinkedIn
-
-```
-https://linkedin.com/in/akshat-bhardwaj-84bb52271/
-```
-
----
-
-# License
-
-This project was developed as part of a Full Stack Developer technical assessment.
+</div>
