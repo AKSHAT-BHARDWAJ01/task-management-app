@@ -1,16 +1,19 @@
-# task-management-app
-A full-stack task management application
 <div align="center">
 
-<div align="center">
+<img src="frontend/favicon.ico" alt="TaskFlow Logo" width="90"/>
 
-# ✅ TaskFlow
 
-### A Modern Full-Stack Task Management Application
+# 🚀 TaskFlow
 
-Manage tasks efficiently with a clean and responsive interface powered by **React**, **FastAPI**, and **SQLite**.
+### Modern Full-Stack Task Management Application
 
-![TaskFlow Banner](./docs/banner.png)
+A clean and responsive task management application built with **React**, **FastAPI**, and **SQLite**. Manage your daily tasks efficiently with a modern user interface and powerful REST APIs.
+
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
 </div>
 
@@ -18,17 +21,32 @@ Manage tasks efficiently with a clean and responsive interface powered by **Reac
 
 # ✨ Features
 
-- Create new tasks
-- View all tasks
-- Edit existing tasks
-- Delete tasks
-- Track task status
-- Responsive modern UI
-- RESTful API
-- Input validation
-- Error handling
-- Loading states
-- Swagger API Documentation
+- ✅ Create new tasks
+- 📝 Edit existing tasks
+- 🗑 Delete tasks
+- 📋 View all tasks
+- 🔄 Update task status
+- 📱 Responsive UI
+- ⚡ FastAPI REST API
+- ✔ Input validation
+- 🚨 Proper error handling
+- 📖 Interactive Swagger Documentation
+
+---
+
+# 📸 Screenshots
+
+## Dashboard
+
+<img width="1279" height="674" alt="Screenshot 2026-07-16 175207" src="https://github.com/user-attachments/assets/b11adc9d-19fe-4d89-a5f5-4a502726b60c" />
+
+## Add Task
+
+<img width="1267" height="677" alt="Screenshot 2026-07-16 183141" src="https://github.com/user-attachments/assets/72ab3669-38d1-4c44-afde-a8bec6979978" />
+
+## API Documentation
+
+<img width="1267" height="679" alt="Screenshot 2026-07-16 183254" src="https://github.com/user-attachments/assets/cefbc630-602d-413c-bc38-9fc2c5b39bb5" />
 
 ---
 
@@ -52,7 +70,7 @@ Manage tasks efficiently with a clean and responsive interface powered by **Reac
 
 - SQLite
 
-## Development Tools
+## Tools
 
 - Git
 - GitHub
@@ -60,31 +78,35 @@ Manage tasks efficiently with a clean and responsive interface powered by **Reac
 
 ---
 
-# 📁 Project Structure
+# 📂 Project Structure
 
 ```text
-taskflow/
+TaskFlow
 │
-├── backend/
-│   ├── app/
-│   │   ├── config/
-│   │   ├── database/
-│   │   ├── models/
-│   │   ├── routers/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   ├── utils/
+├── backend
+│   ├── app
+│   │   ├── config
+│   │   ├── database
+│   │   ├── models
+│   │   ├── routers
+│   │   ├── schemas
+│   │   ├── services
+│   │   ├── utils
 │   │   └── main.py
 │   │
 │   ├── requirements.txt
 │   └── .env
 │
-├── frontend/
-│   ├── public/
-│   ├── src/
+├── frontend
+│   ├── public
+│   ├── src
 │   └── package.json
 │
-├── docs/
+├── docs
+│   ├── logo.png
+│   ├── dashboard.png
+│   ├── add-task.png
+│   └── swagger.png
 │
 └── README.md
 ```
