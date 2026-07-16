@@ -74,6 +74,14 @@ h3 { color: #fff; }
 .priority-medium { color: #fbbf24; }
 .priority-low { color: #4ade80; }
 
+.task-filters { align-items: end; backdrop-filter: blur(18px); background: linear-gradient(145deg, rgb(30 42 74 / 0.72), rgb(20 29 55 / 0.68)); border: 1px solid rgb(148 163 184 / 0.16); border-radius: 14px; display: grid; gap: 0.8rem; grid-template-columns: minmax(190px, 1.5fr) repeat(3, minmax(130px, 1fr)) auto; margin-bottom: 1.25rem; padding: 0.9rem; }
+.task-filters label { color: #aeb7cf; display: grid; font-size: 0.72rem; font-weight: 750; gap: 0.36rem; }
+.task-filters input, .task-filters select { background: rgb(10 15 37 / 0.6); border: 1px solid rgb(148 163 184 / 0.2); border-radius: 8px; color: #e2e8f0; min-height: 38px; padding: 0.5rem 0.65rem; }
+.task-filters input::placeholder { color: #71809f; }
+.task-filters input:focus, .task-filters select:focus { border-color: #818cf8; outline: none; }
+.clear-filters-button { background: transparent; border: 1px solid rgb(148 163 184 / 0.25); border-radius: 8px; color: #c7d2fe; font-size: 0.76rem; font-weight: 750; min-height: 38px; padding: 0.5rem 0.7rem; white-space: nowrap; }
+.clear-filters-button:hover { background: rgb(129 140 248 / 0.16); border-color: rgb(129 140 248 / 0.45); color: #fff; }
+
 .dashboard-layout { align-items: start; display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr) minmax(260px, 0.35fr); }
 .tasks-section, .task-details { border-radius: 16px; padding: clamp(1.1rem, 2vw, 1.5rem); }
 .task-count { background: rgb(129 140 248 / 0.16); border: 1px solid rgb(129 140 248 / 0.25); border-radius: 999px; color: #c7d2fe; font-size: 0.76rem; font-weight: 750; padding: 0.36rem 0.65rem; }
@@ -215,6 +223,17 @@ input:focus, textarea:focus, select:focus { background: rgb(9 16 39 / 0.9); bord
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
+.analytics-main-content { align-self: stretch; background: #f8fafc; max-width: none; min-height: 100vh; }
+.analytics-main-content .topbar > div > p:last-child { color: #64748b; }
+.analytics-main-content .eyebrow { color: #64748b; }
+.analytics-main-content h1 { color: #1e293b; }
+.analytics-view { display: grid; gap: 20px; grid-auto-rows: 360px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.analytics-chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgb(0 0 0 / 0.1); display: flex; flex-direction: column; min-height: 0; padding: 22px; }
+.analytics-chart-card h2 { color: #334155; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0; margin: 0 0 16px; }
+.analytics-chart-canvas { flex: 1; min-height: 0; position: relative; width: 100%; }
+.analytics-donut-canvas { margin: 0 auto; max-width: 310px; }
+.analytics-loading { align-items: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; color: #64748b; display: flex; grid-column: 1 / -1; justify-content: center; min-height: 220px; }
+
 @media (max-width: 1180px) {
   .dashboard-layout { grid-template-columns: minmax(0, 1fr) 280px; }
 }
@@ -229,6 +248,8 @@ input:focus, textarea:focus, select:focus { background: rgb(9 16 39 / 0.9); bord
   .sidebar-profile > span:last-child { display: none; }
   .logout-button { margin-left: 0; }
   .dashboard-layout { grid-template-columns: 1fr; }
+  .task-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clear-filters-button { width: fit-content; }
   .task-details { position: static; }
 }
 
@@ -244,6 +265,8 @@ input:focus, textarea:focus, select:focus { background: rgb(9 16 39 / 0.9); bord
   .topbar { align-items: stretch; flex-direction: column; gap: 1.25rem; margin-bottom: 2rem; }
   .add-task-button { justify-content: center; width: 100%; }
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .task-filters { grid-template-columns: 1fr; }
+  .clear-filters-button { width: 100%; }
   .stat-card { min-height: 112px; padding: 0.85rem; }
   .stat-card strong { font-size: 1.45rem; }
   .stat-icon { display: none; }
@@ -254,4 +277,5 @@ input:focus, textarea:focus, select:focus { background: rgb(9 16 39 / 0.9); bord
   .calendar-day > header { align-items: flex-start; gap: 0.6rem; }
   .calendar-task { grid-template-columns: 8px minmax(0, 1fr); }
   .calendar-task > .status { display: none; }
+  .analytics-view { grid-auto-rows: 340px; grid-template-columns: 1fr; }
 }
