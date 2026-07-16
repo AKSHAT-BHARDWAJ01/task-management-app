@@ -1,7 +1,6 @@
 <div align="center">
 
-<img src="./C:\Users\aksha\task-manager-app\frontend\favicon.ico" alt="TaskFlow Logo" width="90"/>
-
+<img src="frontend/favicon.ico" alt="TaskFlow Logo" width="90"/>
 # 🚀 TaskFlow
 
 ### Modern Full-Stack Task Management Application
