@@ -26,7 +26,7 @@ const viewContent = {
     description: "Here’s what is happening across your tasks today.",
   },
   tasks: {
-    eyebrow: "My tasks",
+    eyebrow: "Pending tasks",
     title: "Your active focus",
     description: "Keep the tasks you are working on front and center.",
   },
