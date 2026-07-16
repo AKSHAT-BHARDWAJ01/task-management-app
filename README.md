@@ -1,6 +1,4 @@
-<div align="center">
-
-<img src="frontend/favicon.ico" alt="TaskFlow Logo" width="90"/>
+ <div align="center"><img src="frontend/favicon.ico" alt="TaskFlow Logo" width="90"/>
 
 
 # 🚀 TaskFlow
