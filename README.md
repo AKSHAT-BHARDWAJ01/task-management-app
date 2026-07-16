@@ -54,6 +54,19 @@ A clean and responsive task management application built with **React**, **FastA
 **Live Application:**  
 https://task-manager-frontend-self-chi.vercel.app/
 
+
+
+
+https://github.com/user-attachments/assets/04e0a7fd-6170-48f3-be6d-4c1dd7a693bc
+
+
+
+
+
+
+
+
+
 ---
 
 # 🛠 Tech Stack
