@@ -1,6 +1,6 @@
 const navigationItems = [
   { id: "dashboard", icon: "▦", label: "Dashboard" },
-  { id: "tasks", icon: "✓", label: "My Tasks" },
+  { id: "tasks", icon: "✓", label: "Pending Tasks" },
   { id: "calendar", icon: "◫", label: "Calendar" },
   { id: "settings", icon: "⚙", label: "Settings" },
 ];
@@ -9,10 +9,15 @@ export function Navbar({ activeView, currentUser, onNavigate, onLogout }) {
   const name = currentUser?.name || "Workspace owner";
   return (
     <aside className="sidebar">
-      <a className="brand" href="#dashboard" aria-label="TaskFlow dashboard">
-        <span className="brand-mark" aria-hidden="true">✓</span>
+      <button
+        className="brand"
+        type="button"
+        onClick={() => onNavigate("dashboard")}
+        aria-label="Go to the TaskFlow dashboard"
+      >
+        <img className="brand-mark" src="/favicon.ico" alt="" />
         <span>TaskFlow</span>
-      </a>
+      </button>
 
       <nav className="sidebar-nav" aria-label="Main navigation">
         {navigationItems.map((item) => (

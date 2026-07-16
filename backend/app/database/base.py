@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config.settings import settings
+import os
 
 
 class Base(DeclarativeBase):
@@ -20,8 +21,16 @@ connect_args = (
     else {"prepare_threshold": None}
 )
 
+# Read from Vercel env var
+DATABASE_URL = os.getenv("DATABASE_URL")  # "postgresql://..."
+
+# Convert to use psycopg (v3) driver
+if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
+
+# Now SQLAlchemy knows to use psycopg driver
 engine = create_engine(
-    settings.DATABASE_URL,
+    DATABASE_URL,
     connect_args=connect_args,
     pool_pre_ping=True,
 )

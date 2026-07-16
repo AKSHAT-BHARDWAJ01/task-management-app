@@ -40,7 +40,10 @@ export function AuthPage({ onAuthenticated }) {
   return (
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="auth-heading">
-        <a className="brand auth-brand" href="#top"><span className="brand-mark" aria-hidden="true">✓</span><span>TaskFlow</span></a>
+        <div className="brand auth-brand" aria-label="TaskFlow">
+          <img className="brand-mark" src="/favicon.ico" alt="" />
+          <span>TaskFlow</span>
+        </div>
         <div className="auth-copy">
           <p className="eyebrow">Personal productivity</p>
           <h1 id="auth-heading">{mode === "login" ? "Welcome back" : "Create your workspace"}</h1>
