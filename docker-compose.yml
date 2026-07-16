@@ -17,6 +17,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - taskmanager-network
 
   frontend:
     build:
@@ -35,7 +37,13 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+    networks:
+      - taskmanager-network
 
 volumes:
   db-data:
     driver: local
+
+networks:
+  taskmanager-network:
+    driver: bridge

@@ -1,14 +1,14 @@
 import { TaskItem } from "./TaskItem";
 
-export function TaskList({ tasks, isLoading, onEdit, onDelete, onComplete, onSelect, deletingId, updatingId }) {
+export function TaskList({ tasks, isLoading, isFiltered = false, onEdit, onDelete, onComplete, onSelect, deletingId, updatingId }) {
   if (isLoading) return <div className="state-card" role="status">Loading your tasks…</div>;
 
   if (!tasks.length) {
     return (
       <div className="state-card empty-state">
         <span aria-hidden="true">✦</span>
-        <h3>Your workspace is clear</h3>
-        <p>Create a task to start organizing your work.</p>
+        <h3>{isFiltered ? "No tasks found" : "Your workspace is clear"}</h3>
+        <p>{isFiltered ? "Try changing your search or filters." : "Create a task to start organizing your work."}</p>
       </div>
     );
   }

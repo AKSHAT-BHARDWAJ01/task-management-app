@@ -11,7 +11,7 @@ const priorityBadges = [
   { key: "low_priority_count", label: "Low", className: "low" },
 ];
 
-export function DashboardStats({ stats, isLoading }) {
+export function DashboardStats({ stats, isLoading, isFiltered = false }) {
   const total = stats.total_tasks || 0;
 
   return (
@@ -21,7 +21,7 @@ export function DashboardStats({ stats, isLoading }) {
           <p className="eyebrow">Overview</p>
           <h2 id="dashboard-heading">Your workspace</h2>
         </div>
-        <span className="stats-caption"><span className="live-dot" /> Live summary</span>
+        <span className="stats-caption"><span className="live-dot" /> {isFiltered ? "Filtered summary" : "Live summary"}</span>
       </div>
 
       <div className="stats-grid" aria-busy={isLoading}>
