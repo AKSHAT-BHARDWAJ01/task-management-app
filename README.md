@@ -1,49 +1,34 @@
- <div align="center"><img src="frontend/favicon.ico" alt="TaskFlow Logo" width="90"/>
+# task-management-app
+A full-stack task management application
+<div align="center">
 
+<div align="center">
 
-# 🚀 TaskFlow
+# ✅ TaskFlow
 
-### Modern Full-Stack Task Management Application
+### A Modern Full-Stack Task Management Application
 
-A clean and responsive task management application built with **React**, **FastAPI**, and **SQLite**. Manage your daily tasks efficiently with a modern user interface and powerful REST APIs.
+Manage tasks efficiently with a clean and responsive interface powered by **React**, **FastAPI**, and **SQLite**.
 
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![TaskFlow Banner](./docs/banner.png)
 
 </div>
 
-
-- ✅ Create new tasks
-- 📝 Edit existing tasks
-- 🗑 Delete tasks
-- 📋 View all tasks
-
-- 🔄 Update task status
-- 📱 Responsive UI
-- ⚡ FastAPI REST API
-- ✔ Input validation
-- 🚨 Proper error handling
-- 📖 Interactive Swagger Documentation
-
 ---
 
-# 📸 Screenshots
+# ✨ Features
 
-## Dashboard
-<img width="1279" height="674" alt="Screenshot 2026-07-16 175207" src="https://github.com/user-attachments/assets/2673a2b6-dcf0-401d-afda-17e155d562d6" />
-
-
-## Add Task
-
-<img width="1267" height="677" alt="Screenshot 2026-07-16 183141" src="https://github.com/user-attachments/assets/397ae9e9-cb4d-4f2c-9a90-a356132c0c84" />
-
-
-## API Documentation
-
-<img width="1267" height="679" alt="Screenshot 2026-07-16 183254" src="https://github.com/user-attachments/assets/32932305-dfe3-48f8-8662-5c67de95f949" />
+- Create new tasks
+- View all tasks
+- Edit existing tasks
+- Delete tasks
+- Track task status
+- Responsive modern UI
+- RESTful API
+- Input validation
+- Error handling
+- Loading states
+- Swagger API Documentation
 
 ---
 
@@ -67,7 +52,7 @@ A clean and responsive task management application built with **React**, **FastA
 
 - SQLite
 
-## Tools
+## Development Tools
 
 - Git
 - GitHub
@@ -75,35 +60,31 @@ A clean and responsive task management application built with **React**, **FastA
 
 ---
 
-# 📂 Project Structure
+# 📁 Project Structure
 
 ```text
-TaskFlow
+taskflow/
 │
-├── backend
-│   ├── app
-│   │   ├── config
-│   │   ├── database
-│   │   ├── models
-│   │   ├── routers
-│   │   ├── schemas
-│   │   ├── services
-│   │   ├── utils
+├── backend/
+│   ├── app/
+│   │   ├── config/
+│   │   ├── database/
+│   │   ├── models/
+│   │   ├── routers/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── utils/
 │   │   └── main.py
 │   │
 │   ├── requirements.txt
 │   └── .env
 │
-├── frontend
-│   ├── public
-│   ├── src
+├── frontend/
+│   ├── public/
+│   ├── src/
 │   └── package.json
 │
-├── docs
-│   ├── logo.png
-│   ├── dashboard.png
-│   ├── add-task.png
-│   └── swagger.png
+├── docs/
 │
 └── README.md
 ```
