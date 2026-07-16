@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./docs/logo.png" alt="TaskFlow Logo" width="90"/>
+<img src="./C:\Users\aksha\task-manager-app\frontend\favicon.ico" alt="TaskFlow Logo" width="90"/>
 
 # 🚀 TaskFlow
 
