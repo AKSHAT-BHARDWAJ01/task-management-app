@@ -10,8 +10,21 @@ class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
 
 
-connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
+#connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+#engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
+is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+
+connect_args = (
+    {"check_same_thread": False}
+    if is_sqlite
+    else {"prepare_threshold": None}
+)
+
+engine = create_engine(
+    settings.DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
