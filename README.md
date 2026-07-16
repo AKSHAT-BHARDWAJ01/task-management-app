@@ -16,7 +16,9 @@ A clean and responsive task management application built with **React**, **FastA
 
 </div>
 
----
+<img width="1279" height="674" alt="Screenshot 2026-07-16 175221" src="https://github.com/user-attachments/assets/56029ce1-4d75-494b-bbce-64d93adbdd5c" />
+<img width="1279" height="674" alt="Screenshot 2026-07-16 175207" src="https://github.com/user-attachments/assets/2673a2b6-dcf0-401d-afda-17e155d562d6" />
+<img width="1279" height="766" alt="Screenshot 2026-07-16 174504" src="https://github.com/user-attachments/assets/9a2861c0-a773-4a23-b0d3-d53eee8a6430" />
 
 # ✨ Features
 
@@ -24,6 +26,7 @@ A clean and responsive task management application built with **React**, **FastA
 - 📝 Edit existing tasks
 - 🗑 Delete tasks
 - 📋 View all tasks
+
 - 🔄 Update task status
 - 📱 Responsive UI
 - ⚡ FastAPI REST API
