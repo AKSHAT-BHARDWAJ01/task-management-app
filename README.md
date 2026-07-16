@@ -18,7 +18,6 @@ A clean and responsive task management application built with **React**, **FastA
 
 <img width="1279" height="674" alt="Screenshot 2026-07-16 175221" src="https://github.com/user-attachments/assets/56029ce1-4d75-494b-bbce-64d93adbdd5c" />
 <img width="1279" height="674" alt="Screenshot 2026-07-16 175207" src="https://github.com/user-attachments/assets/2673a2b6-dcf0-401d-afda-17e155d562d6" />
-<img width="1279" height="766" alt="Screenshot 2026-07-16 174504" src="https://github.com/user-attachments/assets/9a2861c0-a773-4a23-b0d3-d53eee8a6430" />
 
 # ✨ Features
 
@@ -39,16 +38,17 @@ A clean and responsive task management application built with **React**, **FastA
 # 📸 Screenshots
 
 ## Dashboard
+<img width="1279" height="674" alt="Screenshot 2026-07-16 175207" src="https://github.com/user-attachments/assets/2673a2b6-dcf0-401d-afda-17e155d562d6" />
 
-![Dashboard](./docs/dashboard.png)
 
 ## Add Task
 
-![Add Task](./docs/add-task.png)
+<img width="1267" height="677" alt="Screenshot 2026-07-16 183141" src="https://github.com/user-attachments/assets/397ae9e9-cb4d-4f2c-9a90-a356132c0c84" />
+
 
 ## API Documentation
 
-![Swagger](./docs/swagger.png)
+<img width="1267" height="679" alt="Screenshot 2026-07-16 183254" src="https://github.com/user-attachments/assets/32932305-dfe3-48f8-8662-5c67de95f949" />
 
 ---
 
