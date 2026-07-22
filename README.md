@@ -3,7 +3,7 @@
 <img src="frontend/favicon.ico" alt="TaskFlow Logo" width="90"/>
 
 
-# 🚀 TaskFlow
+# TaskFlow
 
 ### Modern Full-Stack Task Management Application
 
@@ -81,19 +81,20 @@ https://github.com/user-attachments/assets/04e0a7fd-6170-48f3-be6d-4c1dd7a693bc
 ## Backend
 
 - FastAPI
-- SQLAlchemy
-- Pydantic
 - Uvicorn
+- Vercel
+- JWT Auth
 
 ## Database
 
 - SQLite
+- Supabase PostgreSQL
 
 ## Tools
 
 - Git
-- GitHub
-- VS Code
+- Swagger UI
+- Docker
 
 ---
 
@@ -132,12 +133,12 @@ TaskFlow
 
 ---
 
-# 🚀 Getting Started
+# Getting Started
 
 ## Clone Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/TaskFlow.git
+git clone https://github.com/AKSHAT-BHARDWAJ01/TaskFlow.git
 
 cd TaskFlow
 ```
@@ -254,7 +255,7 @@ http://localhost:5173
 
 - Lightweight
 - No additional server setup
-- Ideal for development and take-home assignments
+- Ideal for Rapid  development 
 
 ### Layered Architecture
 
@@ -293,20 +294,12 @@ This separation improves maintainability and scalability.
 
 # 🚀 Future Improvements
 
-- User Authentication
-- Task Categories
-- Search & Filters
-- Due Dates
+
 - Notifications
-- Docker Support
-- Unit Testing
+- Mobile App
+- Web Socket
 - CI/CD Pipeline
-
----
-
-# 📜 License
-
-This project was developed as part of a Full-Stack Developer technical assessment.
+- Kubernetes Support
 
 ---
 
