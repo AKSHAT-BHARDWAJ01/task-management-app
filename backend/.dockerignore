@@ -5,6 +5,7 @@ __pycache__
 env
 venv
 .env
+.env.*
 data/*.db
 data/*.db-journal
 data/*.db-shm

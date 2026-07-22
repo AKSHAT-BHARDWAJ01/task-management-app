@@ -1,6 +1,5 @@
 const navigationItems = [
   { id: "dashboard", icon: "▦", label: "Dashboard" },
-  { id: "tasks", icon: "✓", label: "Pending Tasks" },
   { id: "analytics", icon: "◎", label: "Analytics" },
   { id: "calendar", icon: "◫", label: "Calendar" },
   { id: "settings", icon: "⚙", label: "Settings" },

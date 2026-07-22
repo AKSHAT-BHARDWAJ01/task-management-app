@@ -1,6 +1,12 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/tasks";
-const AUTH_BASE_URL = API_BASE_URL.replace(/\/tasks$/, "/auth");
+const configuredApiRoot = (
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api"
+).replace(/\/$/, "");
+const API_BASE_URL = configuredApiRoot.endsWith("/tasks")
+  ? configuredApiRoot
+  : `${configuredApiRoot}/tasks`;
+const AUTH_BASE_URL = configuredApiRoot.endsWith("/auth")
+  ? configuredApiRoot
+  : `${configuredApiRoot}/auth`;
 const TOKEN_STORAGE_KEY = "taskflow-access-token";
 const USER_STORAGE_KEY = "taskflow-current-user";
 const REQUEST_TIMEOUT_MS = 12_000;
