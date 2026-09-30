@@ -8,7 +8,7 @@ A full-stack task management application
 
 ### A Modern Full-Stack Task Management Application
 
-Manage tasks efficiently with a clean and responsive interface powered by **React**, **FastAPI**, and **SQLite**.
+Manage tasks efficiently with a clean and responsive interface powered by **React**, **FastAPI**, and **Supabase PostgreSQL**.
 
 ![TaskFlow Banner](./docs/banner.png)
 
@@ -50,7 +50,7 @@ Manage tasks efficiently with a clean and responsive interface powered by **Reac
 
 ## Database
 
-- SQLite
+- Supabase PostgreSQL
 
 ## Development Tools
 
@@ -271,13 +271,13 @@ Chosen because
 
 ---
 
-## SQLite
+## Supabase PostgreSQL
 
 Chosen because
 
-- Lightweight
-- No installation required
-- Perfect for small applications and take-home assignments
+- Managed PostgreSQL with durable remote storage
+- Works consistently across local, Docker, and Vercel deployments
+- Provides a clear path to production-scale database features
 
 ---
 
@@ -354,7 +354,7 @@ Examples
 ```
 Initialize FastAPI backend
 
-Configure SQLite database
+Configure Supabase PostgreSQL database
 
 Implement CRUD API endpoints
 
