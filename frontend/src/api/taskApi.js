@@ -13,7 +13,8 @@ const AUTH_BASE_URL = configuredApiRoot.endsWith("/auth")
   : `${configuredApiRoot}/auth`;
 const TOKEN_STORAGE_KEY = "taskflow-access-token";
 const USER_STORAGE_KEY = "taskflow-current-user";
-const REQUEST_TIMEOUT_MS = 12_000;
+// Allow extra time for Vercel Python cold starts + Supabase connect.
+const REQUEST_TIMEOUT_MS = 25_000;
 
 export function getAccessToken() {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -46,9 +47,17 @@ async function fetchWithTimeout(url, options) {
     return await fetch(url, { ...options, signal: controller.signal });
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new Error("The API did not respond within 12 seconds. Restart the FastAPI server and try again.");
+      throw new Error(
+        import.meta.env.DEV
+          ? "The API did not respond within 25 seconds. Restart the FastAPI server and try again."
+          : "The API did not respond in time. The production API may be cold-starting or misconfigured — check the Vercel API deployment and DATABASE_URL."
+      );
     }
-    throw new Error("Unable to reach the API. Check that the FastAPI server is running on port 8000.");
+    throw new Error(
+      import.meta.env.DEV
+        ? "Unable to reach the API. Check that the FastAPI server is running on port 8000."
+        : "Unable to reach the production API. Verify the Vercel API deployment is healthy."
+    );
   } finally {
     clearTimeout(timeout);
   }

@@ -1,7 +1,9 @@
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.config.settings import settings
 
@@ -12,16 +14,24 @@ class Base(DeclarativeBase):
 
 is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 
-connect_args = (
-    {"check_same_thread": False}
-    if is_sqlite
-    else {"prepare_threshold": None}
-)
+if is_sqlite:
+    connect_args: dict = {"check_same_thread": False}
+    engine_kwargs: dict = {}
+else:
+    # Serverless-friendly settings: no persistent pool, fail fast on bad networks.
+    connect_args = {
+        "prepare_threshold": None,
+        "connect_timeout": 10,
+    }
+    engine_kwargs = {
+        "poolclass": NullPool,
+        "pool_pre_ping": True,
+    }
 
-engine = create_engine(
+engine: Engine = create_engine(
     settings.DATABASE_URL,
     connect_args=connect_args,
-    pool_pre_ping=not is_sqlite,
+    **engine_kwargs,
 )
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
