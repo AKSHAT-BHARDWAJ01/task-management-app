@@ -1,16 +1,20 @@
-# task-management-app
-A full-stack task management application
 <div align="center">
 
-<div align="center">
+<img src="frontend/favicon.ico" alt="TaskFlow Logo" width="90"/>
 
-# ✅ TaskFlow
 
-### A Modern Full-Stack Task Management Application
+# TaskFlow
 
-Manage tasks efficiently with a clean and responsive interface powered by **React**, **FastAPI**, and **Supabase PostgreSQL**.
+### Modern Full-Stack Task Management Application
 
-![TaskFlow Banner](./docs/banner.png)
+A clean and responsive task management application built with **React** and **FastAPI**. Local development uses **SQLite**. Production uses **Supabase PostgreSQL**.
+
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Local-003B57?logo=sqlite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
 </div>
 
@@ -18,17 +22,51 @@ Manage tasks efficiently with a clean and responsive interface powered by **Reac
 
 # ✨ Features
 
-- Create new tasks
-- View all tasks
-- Edit existing tasks
-- Delete tasks
-- Track task status
-- Responsive modern UI
-- RESTful API
-- Input validation
-- Error handling
-- Loading states
-- Swagger API Documentation
+- ✅ Create new tasks
+- 📝 Edit existing tasks
+- 🗑 Delete tasks
+- 📋 View all tasks
+- 🔄 Update task status
+- 📱 Responsive UI
+- ⚡ FastAPI REST API
+- ✔ Input validation
+- 🚨 Proper error handling
+- 📖 Interactive Swagger Documentation
+
+---
+
+# 📸 Screenshots
+
+## Dashboard
+
+<img width="1279" height="674" alt="Screenshot 2026-07-16 175207" src="https://github.com/user-attachments/assets/b11adc9d-19fe-4d89-a5f5-4a502726b60c" />
+
+## Add Task
+
+<img width="1267" height="677" alt="Screenshot 2026-07-16 183141" src="https://github.com/user-attachments/assets/72ab3669-38d1-4c44-afde-a8bec6979978" />
+
+## API Documentation
+
+<img width="1267" height="679" alt="Screenshot 2026-07-16 183254" src="https://github.com/user-attachments/assets/cefbc630-602d-413c-bc38-9fc2c5b39bb5" />
+
+
+## 🌐 Live Demo
+
+**Live Application:**  
+https://task-manager-frontend-self-chi.vercel.app/
+
+
+
+
+https://github.com/user-attachments/assets/04e0a7fd-6170-48f3-be6d-4c1dd7a693bc
+
+
+
+
+
+
+
+
 
 ---
 
@@ -44,78 +82,79 @@ Manage tasks efficiently with a clean and responsive interface powered by **Reac
 ## Backend
 
 - FastAPI
-- SQLAlchemy
-- Pydantic
 - Uvicorn
+- Vercel
+- JWT Auth
 
 ## Database
 
-- Supabase PostgreSQL
+- SQLite for local development
+- Supabase PostgreSQL for production
 
-## Development Tools
+## Tools
 
 - Git
-- GitHub
-- VS Code
+- Swagger UI
+- Docker
 
 ---
 
-# 📁 Project Structure
+# 📂 Project Structure
 
 ```text
-taskflow/
+TaskFlow
 │
-├── backend/
-│   ├── app/
-│   │   ├── config/
-│   │   ├── database/
-│   │   ├── models/
-│   │   ├── routers/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   ├── utils/
+├── backend
+│   ├── app
+│   │   ├── config
+│   │   ├── database
+│   │   ├── models
+│   │   ├── routers
+│   │   ├── schemas
+│   │   ├── services
+│   │   ├── utils
 │   │   └── main.py
 │   │
 │   ├── requirements.txt
 │   └── .env
 │
-├── frontend/
-│   ├── public/
-│   ├── src/
+├── frontend
+│   ├── public
+│   ├── src
 │   └── package.json
 │
-├── docs/
+├── docs
+│   ├── logo.png
+│   ├── dashboard.png
+│   ├── add-task.png
+│   └── swagger.png
 │
 └── README.md
 ```
 
 ---
 
-# 🚀 Getting Started
+# Getting Started
 
-## Prerequisites
+## Clone Repository
 
-- Python 3.11+
-- Node.js 18+
-- Git
+```bash
+git clone https://github.com/AKSHAT-BHARDWAJ01/TaskFlow.git
+
+cd TaskFlow
+```
 
 ---
 
 # Backend Setup
 
-Navigate to backend
-
 ```bash
 cd backend
-```
 
-Create virtual environment
-
-```bash
 python -m venv .venv
 ```
 
-Activate
+### Activate Virtual Environment
 
 Windows
 
@@ -129,25 +168,25 @@ Linux / macOS
 source .venv/bin/activate
 ```
 
-Install dependencies
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run server
+### Run Backend
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Backend will run at
+Backend URL
 
 ```
 http://localhost:8000
 ```
 
-Swagger Documentation
+Swagger API Docs
 
 ```
 http://localhost:8000/docs
@@ -157,25 +196,15 @@ http://localhost:8000/docs
 
 # Frontend Setup
 
-Navigate to frontend
-
 ```bash
 cd frontend
-```
 
-Install packages
-
-```bash
 npm install
-```
 
-Run
-
-```bash
 npm run dev
 ```
 
-Frontend
+Frontend URL
 
 ```
 http://localhost:5173
@@ -183,212 +212,115 @@ http://localhost:5173
 
 ---
 
-# API Endpoints
+# 📌 API Endpoints
 
-## Get all tasks
-
-```http
-GET /api/tasks
-```
-
----
-
-## Get task
-
-```http
-GET /api/tasks/{id}
-```
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/tasks` | Get all tasks |
+| GET | `/api/tasks/{id}` | Get task by ID |
+| POST | `/api/tasks` | Create task |
+| PUT | `/api/tasks/{id}` | Update task |
+| DELETE | `/api/tasks/{id}` | Delete task |
 
 ---
 
-## Create task
-
-```http
-POST /api/tasks
-```
-
-Example
-
-```json
-{
-  "title": "Build README",
-  "description": "Complete project documentation",
-  "status": "pending"
-}
-```
-
----
-
-## Update task
-
-```http
-PUT /api/tasks/{id}
-```
-
----
-
-## Delete task
-
-```http
-DELETE /api/tasks/{id}
-```
-
----
-
-# Task Model
+# 🗃 Task Model
 
 | Field | Type | Required |
 |---------|------|----------|
-| id | Integer | Auto |
+| id | Integer | Auto Generated |
 | title | String | ✅ |
 | description | String | Optional |
 | status | pending / in-progress / completed | ✅ |
-| createdAt | DateTime | Auto |
-| updatedAt | DateTime | Auto |
+| createdAt | DateTime | Auto Generated |
+| updatedAt | DateTime | Auto Updated |
 
 ---
 
-# Technical Decisions
+# 💡 Technical Decisions
 
-## FastAPI
+### FastAPI
 
-Chosen for
-
-- High performance
+- High-performance backend
 - Automatic Swagger documentation
-- Easy validation with Pydantic
-- Clean API development
+- Built-in request validation
+- Easy REST API development
 
----
-
-## React
-
-Chosen because
+### React
 
 - Component-based architecture
-- Easy state management
 - Fast development with Vite
+- Reusable UI components
 
----
+### SQLite
 
-## Supabase PostgreSQL
+- Default database when `DATABASE_URL` is not set
+- No separate database server for local development
 
-Chosen because
+### Supabase PostgreSQL
 
-- Managed PostgreSQL with durable remote storage
-- Works consistently across local, Docker, and Vercel deployments
-- Provides a clear path to production-scale database features
+- Production database on Vercel
+- Set `DATABASE_URL` to the Supabase connection string
+- SQLite is not used on Vercel
 
----
+### Layered Architecture
 
-## Layered Architecture
-
-The backend follows a layered architecture.
+The backend follows a layered architecture:
 
 ```
 Client
-
-↓
-
-Router
-
-↓
-
-Service
-
-↓
-
+   ↓
+Routers
+   ↓
+Services
+   ↓
 Database
 ```
 
-This improves readability, scalability, and maintainability.
+This separation improves maintainability and scalability.
 
 ---
 
-# Validation
+# ✅ Validation & Error Handling
 
-The application validates
+- Required field validation
+- Invalid status validation
+- Meaningful error messages
+- Proper HTTP status codes
 
-- Required title
-- Allowed task status
-- Invalid task IDs
-- Empty requests
-- Invalid data types
-
----
-
-# Error Handling
-
-Returns proper HTTP status codes
-
-| Code | Meaning |
-|------|----------|
-|200|Success|
-|201|Created|
-|400|Bad Request|
-|404|Task Not Found|
-|500|Internal Server Error|
+| Status Code | Meaning |
+|--------------|---------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Bad Request |
+| 404 | Task Not Found |
+| 500 | Internal Server Error |
 
 ---
 
-# Future Improvements
+# 🚀 Future Improvements
 
-- User Authentication
-- Task Categories
-- Search & Filtering
-- Pagination
-- Dark/Light Theme
-- Docker Deployment
-- Unit Testing
-- CI/CD
+
 - Notifications
+- Mobile App
+- Web Socket
+- CI/CD Pipeline
+- Kubernetes Support
 
 ---
 
-# Git Workflow
+<div align="center">
 
-The project was developed with meaningful commits showing incremental progress.
+### ⭐ If you found this project helpful, consider giving it a star!
 
-Examples
+Made with ❤️ by **Akshat Bhardwaj**
 
-```
-Initialize FastAPI backend
+[GitHub](https://github.com/AKSHAT-BHARDWAJ01) • [LinkedIn](https://www.linkedin.com/in/akshat-bhardwaj-84bb52271/)
 
-Configure Supabase PostgreSQL database
-
-Implement CRUD API endpoints
-
-Add task validation
-
-Initialize React frontend
-
-Connect frontend with backend
-
-Improve UI styling
-
-Write project documentation
-```
-
----
-
-# Author
-
-**Akshat Bhardwaj**
-
-GitHub
-
-```
-https://github.com/AKSHAT-BHARDWAJ01
-```
-
-LinkedIn
-
-```
-https://linkedin.com/in/akshat-bhardwaj-84bb52271/
-```
+</div>
 
 ---
 
 # License
 
-This project was developed as part of a Full Stack Developer technical assessment.
+This project is licensed under the MIT License.
