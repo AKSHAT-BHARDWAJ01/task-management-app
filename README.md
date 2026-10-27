@@ -7,11 +7,12 @@
 
 ### Modern Full-Stack Task Management Application
 
-A clean and responsive task management application built with **React**, **FastAPI**, and **SQLite**. Manage your daily tasks efficiently with a modern user interface and powerful REST APIs.
+A clean and responsive task management application built with **React** and **FastAPI**. Local development uses **SQLite**. Production uses **Supabase PostgreSQL**.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Local-003B57?logo=sqlite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
@@ -87,8 +88,8 @@ https://github.com/user-attachments/assets/04e0a7fd-6170-48f3-be6d-4c1dd7a693bc
 
 ## Database
 
-- SQLite
-- Supabase PostgreSQL
+- SQLite for local development
+- Supabase PostgreSQL for production
 
 ## Tools
 
@@ -253,9 +254,14 @@ http://localhost:5173
 
 ### SQLite
 
-- Lightweight
-- No additional server setup
-- Ideal for Rapid  development 
+- Default database when `DATABASE_URL` is not set
+- No separate database server for local development
+
+### Supabase PostgreSQL
+
+- Production database on Vercel
+- Set `DATABASE_URL` to the Supabase connection string
+- SQLite is not used on Vercel
 
 ### Layered Architecture
 
@@ -312,3 +318,9 @@ Made with ❤️ by **Akshat Bhardwaj**
 [GitHub](https://github.com/AKSHAT-BHARDWAJ01) • [LinkedIn](https://www.linkedin.com/in/akshat-bhardwaj-84bb52271/)
 
 </div>
+
+---
+
+# License
+
+This project is licensed under the MIT License.

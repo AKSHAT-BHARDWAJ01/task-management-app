@@ -1,13 +1,12 @@
 import sys
 from pathlib import Path
 
-from mangum import Mangum
-
+# Used only if the API is deployed from the monorepo root.
+# The production API project should use backend/ as its Vercel Root Directory.
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from app.main import app as fastapi_app
+from app.main import app  # noqa: E402
 
-# Vercel's Python runtime expects a module-level ASGI app.
-application = Mangum(fastapi_app, lifespan="off")
+__all__ = ["app"]

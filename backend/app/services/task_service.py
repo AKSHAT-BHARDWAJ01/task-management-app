@@ -2,6 +2,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Task
+from app.services import notification_service
 
 
 def list_tasks(db: Session, user_id: int) -> list[Task]:
@@ -21,6 +22,7 @@ def create_task(db: Session, user_id: int, data: dict) -> Task:
 
 
 def update_task(db: Session, task: Task, data: dict) -> Task:
+    previous_status = task.status
     for field in (
         "title",
         "description",
@@ -35,10 +37,13 @@ def update_task(db: Session, task: Task, data: dict) -> Task:
             setattr(task, field, data[field].strip() if field == "title" else data[field])
     db.commit()
     db.refresh(task)
+    if previous_status != "completed" and task.status == "completed":
+        notification_service.record_completion(db, task)
     return task
 
 
 def delete_task(db: Session, task: Task) -> None:
+    notification_service.detach_task(db, task.user_id, task.id)
     db.delete(task)
     db.commit()
 

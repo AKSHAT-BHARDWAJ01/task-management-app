@@ -246,3 +246,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .vercel
+
+# Nested clone should not live inside this repo
+grocify-expo/

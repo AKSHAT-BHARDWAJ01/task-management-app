@@ -1,38 +1,37 @@
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.config.settings import settings
-import os
 
 
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
 
 
-#connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
-#engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
 is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 
-connect_args = (
-    {"check_same_thread": False}
-    if is_sqlite
-    else {"prepare_threshold": None}
-)
+if is_sqlite:
+    connect_args: dict = {"check_same_thread": False}
+    engine_kwargs: dict = {}
+else:
+    # Serverless-friendly settings: no persistent pool, fail fast on bad networks.
+    connect_args = {
+        "prepare_threshold": None,
+        "connect_timeout": 10,
+    }
+    engine_kwargs = {
+        "poolclass": NullPool,
+        "pool_pre_ping": True,
+    }
 
-# Read from Vercel env var
-DATABASE_URL = os.getenv("DATABASE_URL")  # "postgresql://..."
-
-# Convert to use psycopg (v3) driver
-if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
-
-# Now SQLAlchemy knows to use psycopg driver
-engine = create_engine(
-    DATABASE_URL,
+engine: Engine = create_engine(
+    settings.DATABASE_URL,
     connect_args=connect_args,
-    pool_pre_ping=True,
+    **engine_kwargs,
 )
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -47,7 +46,8 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    """Create the task table and add newer columns to existing SQLite databases."""
+    """Create the task tables and apply the small legacy schema upgrades."""
+    from app.models.notification import Notification  # noqa: F401
     from app.models.task import Task  # noqa: F401
     from app.models.user import User  # noqa: F401
 
@@ -62,11 +62,12 @@ def _add_missing_task_columns() -> None:
         return
 
     existing_columns = {column["name"] for column in inspect(engine).get_columns("task")}
+    date_type = "DATETIME" if is_sqlite else "TIMESTAMP"
     migrations = {
         "priority": "VARCHAR(10) NOT NULL DEFAULT 'medium'",
         "progress": "INTEGER NOT NULL DEFAULT 0",
-        "start_date": "DATETIME",
-        "due_date": "DATETIME",
+        "start_date": date_type,
+        "due_date": date_type,
         "category": "VARCHAR(100)",
         "user_id": "INTEGER",
     }
@@ -83,12 +84,29 @@ def _add_missing_user_columns() -> None:
         return
 
     existing_columns = {column["name"] for column in inspect(engine).get_columns("users")}
-    if "name" not in existing_columns:
-        with engine.begin() as connection:
+    flag = "INTEGER NOT NULL DEFAULT 1" if is_sqlite else "BOOLEAN NOT NULL DEFAULT TRUE"
+    flag_off = "INTEGER NOT NULL DEFAULT 0" if is_sqlite else "BOOLEAN NOT NULL DEFAULT FALSE"
+    additions = {
+        "daily_reminders_enabled": flag,
+        "daily_reminder_minutes": "INTEGER NOT NULL DEFAULT 540",
+        "overdue_reminders_enabled": flag,
+        "browser_notifications_enabled": flag_off,
+        "reminder_timezone": "VARCHAR(64) NOT NULL DEFAULT 'UTC'",
+    }
+    with engine.begin() as connection:
+        if "name" not in existing_columns:
+            name_from_email = (
+                "substr(email, 1, instr(email, '@') - 1)"
+                if is_sqlite
+                else "split_part(email, '@', 1)"
+            )
             connection.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(100)"))
             connection.execute(
                 text(
-                    "UPDATE users SET name = substr(email, 1, instr(email, '@') - 1) "
+                    f"UPDATE users SET name = {name_from_email} "
                     "WHERE name IS NULL OR name = ''"
                 )
             )
+        for column, definition in additions.items():
+            if column not in existing_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column} {definition}"))
