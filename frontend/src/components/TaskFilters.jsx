@@ -7,7 +7,7 @@ export function TaskFilters({ filters, categories, onChange, onClear }) {
   );
 
   return (
-    <section className="task-filters" aria-label="Filter tasks">
+    <section className="task-filters motion-glass" aria-label="Filter tasks" data-gravity>
       <label className="search-filter">
         <span>Search tasks</span>
         <input

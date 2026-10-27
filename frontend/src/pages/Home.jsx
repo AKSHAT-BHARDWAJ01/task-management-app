@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { taskApi } from "../api/taskApi";
+import { notificationApi, taskApi } from "../api/taskApi";
 import { AnalyticsView } from "../components/AnalyticsView";
+import { HomeNoticePopup } from "../components/HomeNoticePopup";
+import { NotificationBell } from "../components/NotificationBell";
 import { CalendarView } from "../components/CalendarView";
 import { DashboardStats } from "../components/DashboardStats";
 import { Navbar } from "../components/Navbar";
@@ -10,6 +12,9 @@ import { TaskDetails } from "../components/TaskDetails";
 import { TaskFilters } from "../components/TaskFilters";
 import { TaskForm } from "../components/TaskForm";
 import { TaskList } from "../components/TaskList";
+import { useGravityNavigation, useMotionSystem } from "../motion/useMotionSystem";
+import { showBrowserNotifications } from "../notifications/browserNotifications";
+import { useToast } from "../notifications/ToastProvider";
 
 const emptyStats = {
   total_tasks: 0,
@@ -47,7 +52,7 @@ const viewContent = {
   analytics: {
     eyebrow: "Analytics",
     title: "Task insights & reports",
-    description: "Visualize your productivity and export detailed reports.",
+    description: "See completion, status, priority, and when tasks were created.",
   },
   settings: {
     eyebrow: "Settings",
@@ -87,6 +92,7 @@ function filterTasks(taskList, filters) {
 }
 
 export function Home({ currentUser, onLogout }) {
+  const mainContentRef = useRef(null);
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(emptyStats);
   const [filters, setFilters] = useState(initialFilters);
@@ -99,6 +105,8 @@ export function Home({ currentUser, onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState("");
+  const [noticeRevision, setNoticeRevision] = useState(0);
+  const toast = useToast();
 
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
@@ -128,7 +136,6 @@ export function Home({ currentUser, onLogout }) {
   );
   const filteredTasks = useMemo(() => filterTasks(tasks, filters), [tasks, filters]);
   const filteredMyTasks = useMemo(() => filterTasks(myTasks, filters), [myTasks, filters]);
-  const filteredTaskStats = useMemo(() => getStats(filteredTasks), [filteredTasks]);
   const filteredMyTaskStats = useMemo(() => getStats(filteredMyTasks), [filteredMyTasks]);
   const hasActiveFilters = Boolean(
     filters.search ||
@@ -138,6 +145,58 @@ export function Home({ currentUser, onLogout }) {
   );
   const page = viewContent[activeView];
   const firstName = currentUser.name.split(" ")[0];
+  const navigateWithGravity = useGravityNavigation(mainContentRef, activeView, setActiveView);
+
+  useMotionSystem(mainContentRef, activeView);
+
+  const actionsRef = useRef({});
+
+  const syncReminders = useCallback(async () => {
+    try {
+      const result = await notificationApi.sync(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      const created = (result?.created ?? []).map((item) => ({
+        ...item,
+        taskId: item.taskId ?? item.task_id ?? null,
+      }));
+      showBrowserNotifications(created, {
+        enabled: Boolean(result?.browser_notifications_enabled),
+        onOpen: (item) => {
+          const current = actionsRef.current;
+          const taskId = item.taskId ?? item.task_id;
+          if (item.type === "summary" || !taskId) current.navigateWithGravity("tasks");
+          else current.openNotifiedTask(taskId);
+        },
+      });
+      setNoticeRevision((current) => current + 1);
+    } catch {
+      // Opening the notification panel reports a load error on its own.
+    }
+  }, []);
+
+  const openNotifiedTask = useCallback((taskId) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) {
+      toast.info("That task is no longer available.");
+      return;
+    }
+    setSelectedTask(task);
+    if (activeView !== "dashboard") navigateWithGravity("dashboard");
+  }, [activeView, navigateWithGravity, tasks, toast]);
+
+  actionsRef.current = { navigateWithGravity, tasks, toast, openNotifiedTask };
+
+  useEffect(() => {
+    syncReminders();
+    const timer = window.setInterval(syncReminders, 5 * 60 * 1000);
+    function onVisible() {
+      if (document.visibilityState === "visible") syncReminders();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [syncReminders]);
 
   function updateFilter(name, value) {
     setFilters((currentFilters) => ({ ...currentFilters, [name]: value }));
@@ -169,9 +228,12 @@ export function Home({ currentUser, onLogout }) {
       await loadDashboard();
       setIsModalOpen(false);
       setEditingTask(null);
+      toast.success(editingTask ? "Task updated successfully." : "Task created successfully.");
+      syncReminders();
       return true;
     } catch (requestError) {
       setError(requestError.message);
+      toast.error(editingTask ? "Couldn't save your changes." : "Couldn't create the task. Please try again.");
       return false;
     } finally {
       setIsSaving(false);
@@ -187,8 +249,11 @@ export function Home({ currentUser, onLogout }) {
       if (selectedTask?.id === id) setSelectedTask(null);
       await loadDashboard();
       setError("");
+      toast.success("Task deleted successfully.");
+      syncReminders();
     } catch (requestError) {
       setError(requestError.message);
+      toast.error("Couldn't delete the task. Please try again.");
     } finally {
       setDeletingId(null);
     }
@@ -205,25 +270,43 @@ export function Home({ currentUser, onLogout }) {
       setSelectedTask(updatedTask);
       await loadDashboard();
       setError("");
+      toast.success(isCompleted ? "Task moved back to pending." : "Task completed! Nice work.");
+      syncReminders();
     } catch (requestError) {
       setError(requestError.message);
+      toast.error("Couldn't save your changes.");
     } finally {
       setUpdatingId(null);
     }
   }
 
+  function selectStatus(status) {
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      status: status === "all" || currentFilters.status === status ? "all" : status,
+    }));
+    document.getElementById("tasks-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function taskWorkspace(taskList, taskStats, totalTaskCount, heading, subheading) {
+    const visibleHeading = {
+      all: heading,
+      pending: "Pending tasks",
+      "in-progress": "Tasks in progress",
+      completed: "Completed tasks",
+    }[filters.status];
+
     return (
       <>
-        <DashboardStats stats={taskStats} isLoading={isLoading} isFiltered={hasActiveFilters} />
+        <DashboardStats stats={taskStats} isLoading={isLoading} isFiltered={hasActiveFilters} activeStatus={filters.status} onSelectStatus={selectStatus} />
         <TaskFilters filters={filters} categories={categories} onChange={updateFilter} onClear={() => setFilters(initialFilters)} />
         <div className="dashboard-layout">
-          <section className="tasks-section" aria-labelledby="tasks-heading">
+          <section className="tasks-section motion-glass" aria-labelledby="tasks-heading" data-reveal>
             <div className="section-heading">
-              <div><p className="eyebrow">{subheading}</p><h2 id="tasks-heading">{heading}</h2></div>
+              <div><p className="eyebrow">{filters.status === "all" ? subheading : "Filtered by the summary card"}</p><h2 id="tasks-heading">{visibleHeading}</h2></div>
               {!isLoading && <span className="task-count">{hasActiveFilters ? `${taskList.length} of ${totalTaskCount}` : `${taskList.length} total`}</span>}
             </div>
-            <TaskList tasks={taskList} isLoading={isLoading} isFiltered={hasActiveFilters} onEdit={openEditModal} onDelete={deleteTask} onComplete={toggleComplete} onSelect={setSelectedTask} deletingId={deletingId} updatingId={updatingId} />
+            <TaskList tasks={taskList} isLoading={isLoading} isFiltered={hasActiveFilters} onEdit={openEditModal} onDelete={deleteTask} onComplete={toggleComplete} onSelect={setSelectedTask} deletingId={deletingId} updatingId={updatingId} selectedTaskId={selectedTask?.id} />
           </section>
           <TaskDetails task={selectedTask} onEdit={openEditModal} onClose={() => setSelectedTask(null)} />
         </div>
@@ -232,28 +315,42 @@ export function Home({ currentUser, onLogout }) {
   }
 
   function renderView() {
-    if (activeView === "dashboard") return taskWorkspace(filteredTasks, hasActiveFilters ? filteredTaskStats : stats, tasks.length, "Focus for today", "All tasks");
+    const dashboardScope = filterTasks(tasks, { ...filters, status: "all" });
+    if (activeView === "dashboard") return taskWorkspace(filteredTasks, filters.search || filters.priority !== "all" || filters.category !== "all" ? getStats(dashboardScope) : stats, tasks.length, "Focus for today", "All tasks");
     if (activeView === "tasks") return taskWorkspace(filteredMyTasks, filteredMyTaskStats, myTasks.length, "My active tasks", "Pending and in progress");
     if (activeView === "calendar") return <CalendarView tasks={tasks} onSelect={setSelectedTask} />;
     if (activeView === "analytics") return <AnalyticsView tasks={tasks} isLoading={isLoading} />;
-    return <SettingsView currentUser={currentUser} />;
+    return <SettingsView currentUser={currentUser} onSaved={syncReminders} />;
   }
 
   return (
     <div className="app-shell">
-      <Navbar activeView={activeView} currentUser={currentUser} onNavigate={setActiveView} onLogout={onLogout} />
-      <main className={`main-content ${activeView === "analytics" ? "analytics-main-content" : ""}`}>
-        <header className="topbar">
+      <div className="motion-aurora" aria-hidden="true" />
+      <HomeNoticePopup
+        active={activeView === "dashboard"}
+        revision={noticeRevision}
+        onOpenTask={openNotifiedTask}
+        onViewTasks={() => navigateWithGravity("tasks")}
+        onChanged={() => setNoticeRevision((current) => current + 1)}
+      />
+      <Navbar activeView={activeView} currentUser={currentUser} onNavigate={navigateWithGravity} onLogout={onLogout} />
+      <main ref={mainContentRef} className={`main-content ${activeView === "analytics" ? "analytics-main-content" : ""}`}>
+        <header className="topbar" data-gravity>
           <div>
             <p className="eyebrow">{page.eyebrow}</p>
             <h1>{activeView === "dashboard" ? `Good morning, ${firstName}` : page.title} {activeView === "dashboard" && <span>✦</span>}</h1>
             <p>{page.description}</p>
           </div>
-          {activeView !== "settings" && activeView !== "analytics" && <button className="primary-button add-task-button" type="button" onClick={openCreateModal}><span aria-hidden="true">＋</span> Add task</button>}
+          <div className="topbar-actions">
+            <NotificationBell revision={noticeRevision} onOpenTask={openNotifiedTask} onViewTasks={() => navigateWithGravity("tasks")} />
+            {activeView !== "settings" && activeView !== "analytics" && <button className="primary-button add-task-button" type="button" onClick={openCreateModal}><span aria-hidden="true">＋</span> Add task</button>}
+          </div>
         </header>
 
-        {error && <div className="error-banner" role="alert"><span>Unable to complete that action: {error}</span><button type="button" onClick={loadDashboard}>Try again</button></div>}
-        {renderView()}
+        {error && <div className="error-banner" role="alert" data-reveal><span>Unable to complete that action: {error}</span><button type="button" onClick={loadDashboard}>Try again</button></div>}
+        <div className="view-stage" key={activeView}>
+          {renderView()}
+        </div>
       </main>
 
       {isModalOpen && <TaskForm task={editingTask} onSubmit={saveTask} onCancel={closeModal} isSaving={isSaving} />}

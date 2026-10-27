@@ -15,11 +15,24 @@ function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value));
 }
 
-export function TaskItem({ task, onEdit, onDelete, onComplete, onSelect, isDeleting, isUpdating }) {
+export function TaskItem({ task, onEdit, onDelete, onComplete, onSelect, isDeleting, isUpdating, isSelected = false }) {
   const progress = task.progress ?? 0;
 
   return (
-    <article className="task-item" onClick={() => onSelect(task)}>
+    <article
+      className={`task-item motion-glass ${isSelected ? "task-item-selected" : ""}`}
+      data-reveal
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      onClick={() => onSelect(task)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(task);
+        }
+      }}
+    >
       <div className="task-card-topline">
         <div className="task-badges">
           <span className={`status status-${task.status}`}>{statusLabels[task.status]}</span>

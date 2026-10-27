@@ -47,6 +47,7 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     """Create the task tables and apply the small legacy schema upgrades."""
+    from app.models.notification import Notification  # noqa: F401
     from app.models.task import Task  # noqa: F401
     from app.models.user import User  # noqa: F401
 
@@ -83,13 +84,22 @@ def _add_missing_user_columns() -> None:
         return
 
     existing_columns = {column["name"] for column in inspect(engine).get_columns("users")}
-    if "name" not in existing_columns:
-        name_from_email = (
-            "substr(email, 1, instr(email, '@') - 1)"
-            if is_sqlite
-            else "split_part(email, '@', 1)"
-        )
-        with engine.begin() as connection:
+    flag = "INTEGER NOT NULL DEFAULT 1" if is_sqlite else "BOOLEAN NOT NULL DEFAULT TRUE"
+    flag_off = "INTEGER NOT NULL DEFAULT 0" if is_sqlite else "BOOLEAN NOT NULL DEFAULT FALSE"
+    additions = {
+        "daily_reminders_enabled": flag,
+        "daily_reminder_minutes": "INTEGER NOT NULL DEFAULT 540",
+        "overdue_reminders_enabled": flag,
+        "browser_notifications_enabled": flag_off,
+        "reminder_timezone": "VARCHAR(64) NOT NULL DEFAULT 'UTC'",
+    }
+    with engine.begin() as connection:
+        if "name" not in existing_columns:
+            name_from_email = (
+                "substr(email, 1, instr(email, '@') - 1)"
+                if is_sqlite
+                else "split_part(email, '@', 1)"
+            )
             connection.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(100)"))
             connection.execute(
                 text(
@@ -97,3 +107,6 @@ def _add_missing_user_columns() -> None:
                     "WHERE name IS NULL OR name = ''"
                 )
             )
+        for column, definition in additions.items():
+            if column not in existing_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column} {definition}"))

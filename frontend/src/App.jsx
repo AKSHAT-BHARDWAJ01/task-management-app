@@ -7,6 +7,7 @@ import {
   getCurrentUser,
   setAuthenticatedSession,
 } from "./api/taskApi";
+import { ToastProvider } from "./notifications/ToastProvider";
 import { Home } from "./pages/Home";
 
 export default function App() {
@@ -23,7 +24,11 @@ export default function App() {
     setCurrentUser(null);
   }
 
-  return isAuthenticated
-    ? <Home currentUser={currentUser} onLogout={handleLogout} />
-    : <AuthPage onAuthenticated={handleAuthenticated} />;
+  return (
+    <ToastProvider>
+      {isAuthenticated
+        ? <Home currentUser={currentUser} onLogout={handleLogout} />
+        : <AuthPage onAuthenticated={handleAuthenticated} />}
+    </ToastProvider>
+  );
 }

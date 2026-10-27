@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.config.settings import settings
 from app.database import init_db
 from app.routers.auth import auth_router
+from app.routers.notifications import notifications_router
 from app.routers.tasks import tasks_router
 
 
@@ -58,6 +59,7 @@ app.add_middleware(
 
 app.include_router(tasks_router)
 app.include_router(auth_router)
+app.include_router(notifications_router)
 
 
 @app.get("/", tags=["Health"])

@@ -63,8 +63,8 @@ async function fetchWithTimeout(url, options) {
   }
 }
 
-async function request(path = "", options = {}) {
-  const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
+async function authorizedRequest(url, options = {}) {
+  const response = await fetchWithTimeout(url, {
     headers: {
       "Content-Type": "application/json",
       ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
@@ -85,6 +85,14 @@ async function request(path = "", options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
+function request(path = "", options = {}) {
+  return authorizedRequest(`${API_BASE_URL}${path}`, options);
+}
+
+function rootRequest(path, options = {}) {
+  return authorizedRequest(`${configuredApiRoot}${path}`, options);
+}
+
 export const taskApi = {
   getAll: () => request(),
   getStats: () => request("/stats"),
@@ -93,6 +101,16 @@ export const taskApi = {
   update: (id, task) =>
     request(`/${id}`, { method: "PUT", body: JSON.stringify(task) }),
   remove: (id) => request(`/${id}`, { method: "DELETE" }),
+};
+
+export const notificationApi = {
+  list: ({ offset = 0, limit = 30 } = {}) => rootRequest(`/notifications?limit=${limit}&offset=${offset}`),
+  sync: (timezone) => rootRequest("/notifications/sync", { method: "POST", body: JSON.stringify({ timezone }) }),
+  preferences: () => rootRequest("/notifications/preferences"),
+  savePreferences: (preferences) => rootRequest("/notifications/preferences", { method: "PUT", body: JSON.stringify(preferences) }),
+  markRead: (id) => rootRequest(`/notifications/${id}/read`, { method: "POST" }),
+  markAllRead: () => rootRequest("/notifications/read-all", { method: "POST" }),
+  dismiss: (id) => rootRequest(`/notifications/${id}`, { method: "DELETE" }),
 };
 
 async function authRequest(path, payload) {

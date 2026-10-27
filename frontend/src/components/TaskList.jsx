@@ -1,6 +1,6 @@
 import { TaskItem } from "./TaskItem";
 
-export function TaskList({ tasks, isLoading, isFiltered = false, onEdit, onDelete, onComplete, onSelect, deletingId, updatingId }) {
+export function TaskList({ tasks, isLoading, isFiltered = false, onEdit, onDelete, onComplete, onSelect, deletingId, updatingId, selectedTaskId }) {
   if (isLoading) return <div className="state-card" role="status">Loading your tasks…</div>;
 
   if (!tasks.length) {
@@ -16,7 +16,7 @@ export function TaskList({ tasks, isLoading, isFiltered = false, onEdit, onDelet
   return (
     <div className="task-list">
       {tasks.map((task) => (
-        <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onComplete={onComplete} onSelect={onSelect} isDeleting={deletingId === task.id} isUpdating={updatingId === task.id} />
+        <TaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onComplete={onComplete} onSelect={onSelect} isDeleting={deletingId === task.id} isUpdating={updatingId === task.id} isSelected={selectedTaskId === task.id} />
       ))}
     </div>
   );

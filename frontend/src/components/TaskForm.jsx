@@ -1,10 +1,23 @@
 import { useEffect, useState } from "react";
 
+const STATUSES = [
+  { value: "pending", label: "Pending" },
+  { value: "in-progress", label: "In progress" },
+  { value: "completed", label: "Completed" },
+];
+
+const PRIORITIES = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
+
 const emptyTask = {
   title: "",
   description: "",
   status: "pending",
   priority: "medium",
+  progress: 0,
   start_date: "",
   due_date: "",
   category: "",
@@ -26,6 +39,7 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
           description: task.description ?? "",
           status: task.status,
           priority: task.priority,
+          progress: task.progress ?? (task.status === "completed" ? 100 : 0),
           start_date: dateInputValue(task.startDate),
           due_date: dateInputValue(task.dueDate),
           category: task.category ?? "",
@@ -49,16 +63,42 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
     setValues((current) => ({ ...current, [name]: value }));
   }
 
+  function chooseStatus(status) {
+    setValues((current) => ({
+      ...current,
+      status,
+      progress: status === "completed"
+        ? 100
+        : current.status === "completed" && current.progress === 100
+          ? 0
+          : current.progress,
+    }));
+  }
+
+  function chooseProgress(event) {
+    const progress = Number(event.target.value);
+    setValues((current) => ({
+      ...current,
+      progress,
+      status: progress === 100 ? "completed" : current.status === "completed" ? "in-progress" : current.status,
+    }));
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!values.title.trim()) {
       setFormError("A task title is required.");
       return;
     }
+    if (values.start_date && values.due_date && values.due_date < values.start_date) {
+      setFormError("The due date needs to be on or after the start date.");
+      return;
+    }
 
     setFormError("");
     await onSubmit({
       ...values,
+      progress: Number(values.progress),
       title: values.title.trim(),
       start_date: values.start_date ? `${values.start_date}T00:00:00` : null,
       due_date: values.due_date ? `${values.due_date}T00:00:00` : null,
@@ -68,6 +108,8 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={!isSaving ? onCancel : undefined}>
+      <div className="task-modal-scene">
+        <div className="task-modal-glow" aria-hidden="true" />
       <section
         className="task-modal"
         aria-labelledby="form-heading"
@@ -94,23 +136,60 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
             <textarea id="description" name="description" value={values.description} onChange={updateValue} placeholder="Add helpful context for this task" maxLength="500" rows="4" disabled={isSaving} />
           </div>
 
+          <div className="form-field">
+              <span id="status-label">Status</span>
+              <div className="choice-row" role="radiogroup" aria-labelledby="status-label">
+                {STATUSES.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`choice-chip choice-${option.value} ${values.status === option.value ? "is-selected" : ""}`}
+                    type="button"
+                    role="radio"
+                    aria-checked={values.status === option.value}
+                    disabled={isSaving}
+                    onClick={() => chooseStatus(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          <div className="form-field">
+              <span id="priority-label">Priority</span>
+              <div className="choice-row" role="radiogroup" aria-labelledby="priority-label">
+                {PRIORITIES.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`choice-chip choice-${option.value} ${values.priority === option.value ? "is-selected" : ""}`}
+                    type="button"
+                    role="radio"
+                    aria-checked={values.priority === option.value}
+                    disabled={isSaving}
+                    onClick={() => setValues((current) => ({ ...current, priority: option.value }))}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          <div className="form-field progress-field">
+            <label htmlFor="progress">Progress <strong>{values.progress}%</strong></label>
+            <input
+              id="progress"
+              name="progress"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={values.progress}
+              style={{ "--progress": `${values.progress}%` }}
+              onChange={chooseProgress}
+              disabled={isSaving}
+            />
+          </div>
+
           <div className="form-grid">
-            <div className="form-field">
-              <label htmlFor="status">Status</label>
-              <select id="status" name="status" value={values.status} onChange={updateValue} disabled={isSaving}>
-                <option value="pending">Pending</option>
-                <option value="in-progress">In progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-            <div className="form-field">
-              <label htmlFor="priority">Priority</label>
-              <select id="priority" name="priority" value={values.priority} onChange={updateValue} disabled={isSaving}>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
             <div className="form-field">
               <label htmlFor="start_date">Start date <span>(optional)</span></label>
               <input id="start_date" name="start_date" type="date" value={values.start_date} onChange={updateValue} disabled={isSaving} />
@@ -134,6 +213,7 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
           </div>
         </form>
       </section>
+      </div>
     </div>
   );
 }
