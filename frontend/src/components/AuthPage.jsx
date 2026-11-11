@@ -7,7 +7,7 @@ function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function AuthPage({ onAuthenticated }) {
+export function AuthPage({ onAuthenticated, inviteMessage = "" }) {
   const sceneRef = useRef(null);
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -90,6 +90,7 @@ export function AuthPage({ onAuthenticated }) {
 
   return (
     <main className="auth-page">
+      {inviteMessage && <p className="invite-signin-note">{inviteMessage}</p>}
       <div className="auth-aurora" aria-hidden="true" />
       <div className="auth-grid" aria-hidden="true" />
       <div

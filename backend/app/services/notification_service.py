@@ -114,8 +114,59 @@ def detach_task(db: Session, user_id: int, task_id: int) -> None:
         notice.task_id = None
 
 
+def record_created(db: Session, task: Task) -> Notification | None:
+    return _insert(
+        db,
+        user_id=task.user_id,
+        type="created",
+        title="Task created",
+        message=f"Task created: {task.title}.",
+        task_id=task.id,
+        idempotency_key=f"created:{task.id}",
+    )
+
+
+def record_updated(db: Session, task: Task) -> Notification | None:
+    return _insert(
+        db,
+        user_id=task.user_id,
+        type="updated",
+        title="Task updated",
+        message=f"Task updated: {task.title}.",
+        task_id=task.id,
+        idempotency_key=f"updated:{task.id}:{_stamp(task)}",
+    )
+
+
+def record_reopened(db: Session, task: Task) -> Notification | None:
+    return _insert(
+        db,
+        user_id=task.user_id,
+        type="reopened",
+        title="Task reopened",
+        message=f"Task reopened: {task.title}.",
+        task_id=task.id,
+        idempotency_key=f"reopened:{task.id}:{_stamp(task)}",
+    )
+
+
+def record_deleted(db: Session, task: Task) -> Notification | None:
+    return _insert(
+        db,
+        user_id=task.user_id,
+        type="deleted",
+        title="Task deleted",
+        message=f"Task deleted: {task.title}.",
+        task_id=None,
+        idempotency_key=f"deleted:{task.id}",
+    )
+
+
+def _stamp(task: Task) -> str:
+    return task.updated_at.isoformat() if task.updated_at else "once"
+
+
 def record_completion(db: Session, task: Task) -> Notification | None:
-    stamp = task.updated_at.isoformat() if task.updated_at else "once"
     return _insert(
         db,
         user_id=task.user_id,
@@ -123,7 +174,7 @@ def record_completion(db: Session, task: Task) -> Notification | None:
         title="Task completed",
         message=f"Task completed: {task.title}.",
         task_id=task.id,
-        idempotency_key=f"completed:{task.id}:{stamp}",
+        idempotency_key=f"completed:{task.id}:{_stamp(task)}",
     )
 
 

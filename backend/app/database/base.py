@@ -47,6 +47,15 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     """Create the task tables and apply the small legacy schema upgrades."""
+    from app.models.collaboration import (  # noqa: F401
+        Milestone,
+        Project,
+        ProjectActivity,
+        ProjectMembership,
+        Workspace,
+        WorkspaceInvitation,
+        WorkspaceMembership,
+    )
     from app.models.notification import Notification  # noqa: F401
     from app.models.task import Task  # noqa: F401
     from app.models.user import User  # noqa: F401
@@ -70,6 +79,10 @@ def _add_missing_task_columns() -> None:
         "due_date": date_type,
         "category": "VARCHAR(100)",
         "user_id": "INTEGER",
+        "workspace_id": "INTEGER",
+        "project_id": "INTEGER",
+        "assignee_id": "INTEGER",
+        "milestone_id": "INTEGER",
     }
 
     with engine.begin() as connection:

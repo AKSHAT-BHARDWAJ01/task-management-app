@@ -52,7 +52,9 @@ def update_task(
     task = task_service.get_task(db, current_user.id, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    return task_service.update_task(db, task, payload.model_dump(exclude_unset=True))
+    if not task_service.can_edit_task(db, current_user.id, task):
+        raise HTTPException(status_code=403, detail="You cannot edit this task")
+    return task_service.update_task(db, task, payload.model_dump(exclude_unset=True), current_user.id)
 
 
 @tasks_router.delete("/{task_id}")
@@ -62,5 +64,7 @@ def delete_task(
     task = task_service.get_task(db, current_user.id, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    if not task_service.can_edit_task(db, current_user.id, task):
+        raise HTTPException(status_code=403, detail="You cannot edit this task")
     task_service.delete_task(db, task)
     return {"message": "Task deleted successfully"}

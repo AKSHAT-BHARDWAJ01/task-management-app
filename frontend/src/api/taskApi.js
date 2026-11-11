@@ -127,6 +127,50 @@ async function authRequest(path, payload) {
   return response.json();
 }
 
+function toQuery(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "" && value !== false) {
+      search.set(key, String(value));
+    }
+  });
+  const text = search.toString();
+  return text ? `?${text}` : "";
+}
+
+export const workspaceApi = {
+  list: () => rootRequest("/workspaces"),
+  create: (body) => rootRequest("/workspaces", { method: "POST", body: JSON.stringify(body) }),
+  update: (id, body) => rootRequest(`/workspaces/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  remove: (id) => rootRequest(`/workspaces/${id}`, { method: "DELETE" }),
+  transfer: (id, userId) => rootRequest(`/workspaces/${id}/transfer`, { method: "POST", body: JSON.stringify({ user_id: userId }) }),
+  members: (id) => rootRequest(`/workspaces/${id}/members`),
+  changeRole: (id, userId, role) => rootRequest(`/workspaces/${id}/members/${userId}`, { method: "PATCH", body: JSON.stringify({ role }) }),
+  removeMember: (id, userId) => rootRequest(`/workspaces/${id}/members/${userId}`, { method: "DELETE" }),
+  invitations: (id) => rootRequest(`/workspaces/${id}/invitations`),
+  invite: (id, body) => rootRequest(`/workspaces/${id}/invitations`, { method: "POST", body: JSON.stringify(body) }),
+  revokeInvite: (id, inviteId) => rootRequest(`/workspaces/${id}/invitations/${inviteId}/revoke`, { method: "POST" }),
+  resendInvite: (id, inviteId) => rootRequest(`/workspaces/${id}/invitations/${inviteId}/resend`, { method: "POST" }),
+  previewInvite: (token) => rootRequest(`/invitations/preview?token=${encodeURIComponent(token)}`),
+  acceptInvite: (token) => rootRequest("/invitations/accept", { method: "POST", body: JSON.stringify({ token }) }),
+  declineInvite: (token) => rootRequest("/invitations/decline", { method: "POST", body: JSON.stringify({ token }) }),
+  projects: (id, params) => rootRequest(`/workspaces/${id}/projects${toQuery(params)}`),
+  createProject: (id, body) => rootRequest(`/workspaces/${id}/projects`, { method: "POST", body: JSON.stringify(body) }),
+  project: (id) => rootRequest(`/projects/${id}`),
+  updateProject: (id, body) => rootRequest(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  archiveProject: (id) => rootRequest(`/projects/${id}/archive`, { method: "POST" }),
+  restoreProject: (id) => rootRequest(`/projects/${id}/restore`, { method: "POST" }),
+  deleteProject: (id) => rootRequest(`/projects/${id}`, { method: "DELETE" }),
+  addProjectMember: (id, body) => rootRequest(`/projects/${id}/members`, { method: "POST", body: JSON.stringify(body) }),
+  removeProjectMember: (id, userId) => rootRequest(`/projects/${id}/members/${userId}`, { method: "DELETE" }),
+  tasks: (id) => rootRequest(`/projects/${id}/tasks`),
+  milestones: (id) => rootRequest(`/projects/${id}/milestones`),
+  createMilestone: (id, body) => rootRequest(`/projects/${id}/milestones`, { method: "POST", body: JSON.stringify(body) }),
+  updateMilestone: (id, milestoneId, body) => rootRequest(`/projects/${id}/milestones/${milestoneId}`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteMilestone: (id, milestoneId) => rootRequest(`/projects/${id}/milestones/${milestoneId}`, { method: "DELETE" }),
+  activity: (id, offset = 0) => rootRequest(`/projects/${id}/activity?limit=30&offset=${offset}`),
+};
+
 export const authApi = {
   register: (credentials) => authRequest("/register", credentials),
   login: (credentials) => authRequest("/login", credentials),
