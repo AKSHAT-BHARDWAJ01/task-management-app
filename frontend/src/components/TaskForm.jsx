@@ -27,7 +27,7 @@ function dateInputValue(value) {
   return value ? value.slice(0, 10) : "";
 }
 
-export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
+export function TaskForm({ task, initialTitle = "", onSubmit, onCancel, isSaving }) {
   const [values, setValues] = useState(emptyTask);
   const [formError, setFormError] = useState("");
 
@@ -44,10 +44,10 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
           due_date: dateInputValue(task.dueDate),
           category: task.category ?? "",
         }
-        : emptyTask,
+        : { ...emptyTask, title: initialTitle },
     );
     setFormError("");
-  }, [task]);
+  }, [task, initialTitle]);
 
   useEffect(() => {
     function closeOnEscape(event) {
@@ -96,14 +96,18 @@ export function TaskForm({ task, onSubmit, onCancel, isSaving }) {
     }
 
     setFormError("");
-    await onSubmit({
-      ...values,
-      progress: Number(values.progress),
-      title: values.title.trim(),
-      start_date: values.start_date ? `${values.start_date}T00:00:00` : null,
-      due_date: values.due_date ? `${values.due_date}T00:00:00` : null,
-      category: values.category.trim() || null,
-    });
+    try {
+      await onSubmit({
+        ...values,
+        progress: Number(values.progress),
+        title: values.title.trim(),
+        start_date: values.start_date ? `${values.start_date}T00:00:00` : null,
+        due_date: values.due_date ? `${values.due_date}T00:00:00` : null,
+        category: values.category.trim() || null,
+      });
+    } catch (requestError) {
+      setFormError(requestError.message || "Couldn't save that task.");
+    }
   }
 
   return (

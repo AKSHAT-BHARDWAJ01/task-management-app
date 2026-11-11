@@ -17,6 +17,10 @@ class TaskCreate(BaseModel):
     start_date: datetime | None = None
     due_date: datetime | None = None
     category: str | None = Field(default=None, max_length=100)
+    workspace_id: int | None = None
+    project_id: int | None = None
+    assignee_id: int | None = None
+    milestone_id: int | None = None
 
     @field_validator("title")
     @classmethod
@@ -36,6 +40,10 @@ class TaskUpdate(BaseModel):
     start_date: datetime | None = None
     due_date: datetime | None = None
     category: str | None = Field(default=None, max_length=100)
+    workspace_id: int | None = None
+    project_id: int | None = None
+    assignee_id: int | None = None
+    milestone_id: int | None = None
 
     @field_validator("title")
     @classmethod
@@ -61,6 +69,10 @@ class TaskRead(BaseModel):
     start_date: datetime | None = Field(serialization_alias="startDate")
     due_date: datetime | None = Field(serialization_alias="dueDate")
     category: str | None
+    workspace_id: int | None = None
+    project_id: int | None = None
+    assignee_id: int | None = None
+    milestone_id: int | None = None
     created_at: datetime = Field(serialization_alias="createdAt")
     updated_at: datetime = Field(serialization_alias="updatedAt")
 

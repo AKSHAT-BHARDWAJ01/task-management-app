@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database.base import Base
 from app.models import Notification, Task, User
-from app.services import notification_service
+from app.services import notification_service, task_service
 
 
 class NotificationAccessTests(unittest.TestCase):
@@ -89,6 +89,28 @@ class NotificationAccessTests(unittest.TestCase):
         second = notification_service.record_completion(self.db, task)
         self.assertIsNotNone(first)
         self.assertIsNone(second)
+
+    def test_task_actions_each_leave_a_notice(self):
+        task = task_service.create_task(self.db, self.alice.id, {
+            "title": "Ship filters",
+            "description": "",
+            "status": "pending",
+            "priority": "medium",
+            "progress": 0,
+        })
+        task_service.update_task(self.db, task, {"title": "Ship the filters"})
+        task_service.update_task(self.db, task, {"status": "completed", "progress": 100})
+        task_service.update_task(self.db, task, {"status": "pending", "progress": 40})
+        task_service.delete_task(self.db, task)
+        titles = [
+            item.title
+            for item in notification_service.list_notifications(self.db, self.alice.id, 20, 0)["items"]
+        ]
+        self.assertEqual(titles.count("Task created"), 1)
+        self.assertIn("Task updated", titles)
+        self.assertIn("Task completed", titles)
+        self.assertIn("Task reopened", titles)
+        self.assertIn("Task deleted", titles)
 
     def _bob_id(self):
         return 0

@@ -24,7 +24,11 @@ class Task(Base):
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    user: Mapped["User"] = relationship(back_populates="tasks")
+    workspace_id: Mapped[int | None] = mapped_column(ForeignKey("workspace.id"), nullable=True, index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("project.id"), nullable=True, index=True)
+    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    milestone_id: Mapped[int | None] = mapped_column(ForeignKey("milestone.id"), nullable=True, index=True)
+    user: Mapped["User"] = relationship(back_populates="tasks", foreign_keys=[user_id])
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

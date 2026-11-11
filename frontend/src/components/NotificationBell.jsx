@@ -136,7 +136,7 @@ export function NotificationBell({ revision, onOpenTask, onViewTasks }) {
               <button type="button" onClick={() => load(0)}>Try again</button>
             </p>
           )}
-          {status === "ready" && !items.length && <p className="notice-state">You're all caught up. Deadline reminders will show up here.</p>}
+          {status === "ready" && !items.length && <p className="notice-state">You're all caught up. Task updates and reminders show up here.</p>}
           {status !== "loading" && status !== "error" && (
             <ul>
               {items.map((item) => (

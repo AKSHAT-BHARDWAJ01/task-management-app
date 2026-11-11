@@ -9,8 +9,10 @@ from fastapi.responses import JSONResponse
 from app.config.settings import settings
 from app.database import init_db
 from app.routers.auth import auth_router
+from app.routers.collaboration import collaboration_router
 from app.routers.notifications import notifications_router
 from app.routers.tasks import tasks_router
+from app.services.collaboration_service import CollaborationError
 
 
 logger = logging.getLogger("taskflow")
@@ -60,6 +62,12 @@ app.add_middleware(
 app.include_router(tasks_router)
 app.include_router(auth_router)
 app.include_router(notifications_router)
+app.include_router(collaboration_router)
+
+
+@app.exception_handler(CollaborationError)
+async def collaboration_error_handler(_request, exc: CollaborationError):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 @app.get("/", tags=["Health"])

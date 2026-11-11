@@ -74,7 +74,7 @@ export function HomeNoticePopup({ active, revision, onOpenTask, onViewTasks, onC
 
   useEffect(() => {
     if (!cards.length) return undefined;
-    const timer = window.setTimeout(() => setCards([]), 8000);
+    const timer = window.setTimeout(() => setCards([]), 12000);
     return () => window.clearTimeout(timer);
   }, [cards]);
 
@@ -99,7 +99,7 @@ export function HomeNoticePopup({ active, revision, onOpenTask, onViewTasks, onC
   return (
     <div className="message-popups" aria-live="polite" aria-relevant="additions">
       {cards.map((item) => (
-        <article className="message-popup" key={item.id} role="status">
+        <article className={`message-popup message-popup-${item.type}`} key={item.id} role="status">
           <img className="message-popup-mark" src="/favicon.ico" alt="" />
           <button type="button" className="message-popup-body" onClick={() => openCard(item)}>
             <span className="message-popup-meta">

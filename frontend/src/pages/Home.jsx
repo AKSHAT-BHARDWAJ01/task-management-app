@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { notificationApi, taskApi } from "../api/taskApi";
+import { notificationApi, taskApi, workspaceApi } from "../api/taskApi";
+import { InviteBanner, MembersView, ProjectsView } from "../components/collaboration/CollaborationViews";
 import { AnalyticsView } from "../components/AnalyticsView";
 import { HomeNoticePopup } from "../components/HomeNoticePopup";
 import { NotificationBell } from "../components/NotificationBell";
@@ -59,6 +60,16 @@ const viewContent = {
     title: "Manage your workspace",
     description: "Update your profile and task preferences.",
   },
+  projects: {
+    eyebrow: "Projects",
+    title: "Projects",
+    description: "Organize work by project, milestone, and teammate.",
+  },
+  members: {
+    eyebrow: "Team",
+    title: "Workspace members",
+    description: "Invite people, change roles, and review pending links.",
+  },
 };
 
 function getStats(taskList) {
@@ -91,7 +102,7 @@ function filterTasks(taskList, filters) {
   });
 }
 
-export function Home({ currentUser, onLogout }) {
+export function Home({ currentUser, onLogout, inviteToken = "", onInviteDone }) {
   const mainContentRef = useRef(null);
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(emptyStats);
@@ -106,6 +117,9 @@ export function Home({ currentUser, onLogout }) {
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState("");
   const [noticeRevision, setNoticeRevision] = useState(0);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [workspaceId, setWorkspaceId] = useState(() => Number(localStorage.getItem("taskflow-workspace-id")) || null);
+  const [sectionEpoch, setSectionEpoch] = useState(0);
   const toast = useToast();
 
   const loadDashboard = useCallback(async () => {
@@ -126,6 +140,22 @@ export function Home({ currentUser, onLogout }) {
     loadDashboard();
   }, [loadDashboard]);
 
+  const loadWorkspaces = useCallback(async (preferredId) => {
+    const list = await workspaceApi.list();
+    setWorkspaces(list);
+    setWorkspaceId((current) => {
+      const preferred = preferredId ?? current ?? Number(localStorage.getItem("taskflow-workspace-id"));
+      const match = list.find((item) => item.id === preferred) || list.find((item) => item.workspace_type === "personal") || list[0];
+      if (!match) return current;
+      localStorage.setItem("taskflow-workspace-id", String(match.id));
+      return match.id;
+    });
+  }, []);
+
+  useEffect(() => {
+    loadWorkspaces().catch((requestError) => setError(requestError.message));
+  }, [loadWorkspaces]);
+
   const myTasks = useMemo(
     () => tasks.filter((task) => task.status === "pending" || task.status === "in-progress"),
     [tasks],
@@ -143,9 +173,13 @@ export function Home({ currentUser, onLogout }) {
     filters.priority !== "all" ||
     filters.category !== "all",
   );
-  const page = viewContent[activeView];
+  const page = viewContent[activeView] ?? viewContent.dashboard;
   const firstName = currentUser.name.split(" ")[0];
-  const navigateWithGravity = useGravityNavigation(mainContentRef, activeView, setActiveView);
+  const changeView = useGravityNavigation(mainContentRef, activeView, setActiveView);
+  const navigateWithGravity = useCallback((nextView) => {
+    if (nextView === activeView) setSectionEpoch((current) => current + 1);
+    changeView(nextView);
+  }, [activeView, changeView]);
 
   useMotionSystem(mainContentRef, activeView);
 
@@ -228,13 +262,16 @@ export function Home({ currentUser, onLogout }) {
       await loadDashboard();
       setIsModalOpen(false);
       setEditingTask(null);
-      toast.success(editingTask ? "Task updated successfully." : "Task created successfully.");
+      toast.success(
+        editingTask ? `"${savedTask.title}" was saved.` : `"${savedTask.title}" was added to your list.`,
+        { title: editingTask ? "Task updated" : "Task created" },
+      );
       syncReminders();
       return true;
     } catch (requestError) {
       setError(requestError.message);
       toast.error(editingTask ? "Couldn't save your changes." : "Couldn't create the task. Please try again.");
-      return false;
+      throw requestError;
     } finally {
       setIsSaving(false);
     }
@@ -249,7 +286,7 @@ export function Home({ currentUser, onLogout }) {
       if (selectedTask?.id === id) setSelectedTask(null);
       await loadDashboard();
       setError("");
-      toast.success("Task deleted successfully.");
+      toast.success("It was removed from your list.", { title: "Task deleted" });
       syncReminders();
     } catch (requestError) {
       setError(requestError.message);
@@ -270,7 +307,10 @@ export function Home({ currentUser, onLogout }) {
       setSelectedTask(updatedTask);
       await loadDashboard();
       setError("");
-      toast.success(isCompleted ? "Task moved back to pending." : "Task completed! Nice work.");
+      toast.success(
+        isCompleted ? `"${task.title}" is pending again.` : `"${task.title}" is complete.`,
+        { title: isCompleted ? "Task reopened" : "Task completed" },
+      );
       syncReminders();
     } catch (requestError) {
       setError(requestError.message);
@@ -320,7 +360,37 @@ export function Home({ currentUser, onLogout }) {
     if (activeView === "tasks") return taskWorkspace(filteredMyTasks, filteredMyTaskStats, myTasks.length, "My active tasks", "Pending and in progress");
     if (activeView === "calendar") return <CalendarView tasks={tasks} onSelect={setSelectedTask} />;
     if (activeView === "analytics") return <AnalyticsView tasks={tasks} isLoading={isLoading} />;
+    if (activeView === "projects") {
+      return currentWorkspace
+        ? <ProjectsView key={currentWorkspace.id} resetSignal={sectionEpoch} workspace={{ ...currentWorkspace, currentUserId: currentUser.id }} onOpenTeam={() => navigateWithGravity("members")} />
+        : <p className="empty-copy">Loading workspace…</p>;
+    }
+    if (activeView === "members") {
+      return currentWorkspace
+        ? <MembersView key={currentWorkspace.id} workspace={currentWorkspace} currentUser={currentUser} onWorkspaceChanged={() => loadWorkspaces()} />
+        : <p className="empty-copy">Loading workspace…</p>;
+    }
     return <SettingsView currentUser={currentUser} onSaved={syncReminders} />;
+  }
+
+  const currentWorkspace = workspaces.find((item) => item.id === workspaceId) || null;
+
+  function switchWorkspace(nextId) {
+    if (!nextId || nextId === workspaceId) return;
+    setWorkspaceId(nextId);
+    localStorage.setItem("taskflow-workspace-id", String(nextId));
+  }
+
+  async function createWorkspace() {
+    const name = window.prompt("Name the team workspace");
+    if (!name?.trim()) return;
+    try {
+      const created = await workspaceApi.create({ name: name.trim() });
+      await loadWorkspaces(created.id);
+      navigateWithGravity("projects");
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   }
 
   return (
@@ -333,9 +403,18 @@ export function Home({ currentUser, onLogout }) {
         onViewTasks={() => navigateWithGravity("tasks")}
         onChanged={() => setNoticeRevision((current) => current + 1)}
       />
-      <Navbar activeView={activeView} currentUser={currentUser} onNavigate={navigateWithGravity} onLogout={onLogout} />
+      <Navbar
+        activeView={activeView}
+        currentUser={currentUser}
+        workspaces={workspaces}
+        currentWorkspace={currentWorkspace}
+        onSwitchWorkspace={switchWorkspace}
+        onCreateWorkspace={createWorkspace}
+        onNavigate={navigateWithGravity}
+        onLogout={onLogout}
+      />
       <main ref={mainContentRef} className={`main-content ${activeView === "analytics" ? "analytics-main-content" : ""}`}>
-        <header className="topbar" data-gravity>
+        <header className={`topbar ${activeView === "projects" || activeView === "members" ? "topbar-compact" : ""}`} data-gravity>
           <div>
             <p className="eyebrow">{page.eyebrow}</p>
             <h1>{activeView === "dashboard" ? `Good morning, ${firstName}` : page.title} {activeView === "dashboard" && <span>✦</span>}</h1>
@@ -343,10 +422,11 @@ export function Home({ currentUser, onLogout }) {
           </div>
           <div className="topbar-actions">
             <NotificationBell revision={noticeRevision} onOpenTask={openNotifiedTask} onViewTasks={() => navigateWithGravity("tasks")} />
-            {activeView !== "settings" && activeView !== "analytics" && <button className="primary-button add-task-button" type="button" onClick={openCreateModal}><span aria-hidden="true">＋</span> Add task</button>}
+            {!["settings", "analytics", "projects", "members"].includes(activeView) && <button className="primary-button add-task-button" type="button" onClick={openCreateModal}><span aria-hidden="true">＋</span> Add task</button>}
           </div>
         </header>
 
+        {inviteToken && <InviteBanner token={inviteToken} onDone={(accepted) => { onInviteDone(); if (accepted) loadWorkspaces(); }} />}
         {error && <div className="error-banner" role="alert" data-reveal><span>Unable to complete that action: {error}</span><button type="button" onClick={loadDashboard}>Try again</button></div>}
         <div className="view-stage" key={activeView}>
           {renderView()}

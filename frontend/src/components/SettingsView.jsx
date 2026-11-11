@@ -7,6 +7,7 @@ import {
   requestBrowserNotificationPermission,
 } from "../notifications/browserNotifications";
 import { useToast } from "../notifications/ToastProvider";
+import { applyTheme, readThemeChoice, saveThemeChoice } from "../theme";
 
 const fallbackPreferences = {
   daily_reminders_enabled: true,
@@ -19,6 +20,7 @@ const fallbackPreferences = {
 export function SettingsView({ currentUser, onSaved }) {
   const toast = useToast();
   const [compactMode, setCompactMode] = useState(false);
+  const [themeChoice, setThemeChoice] = useState(readThemeChoice);
   const [preferences, setPreferences] = useState(fallbackPreferences);
   const [status, setStatus] = useState("loading");
   const supported = browserNotificationSupport();
@@ -83,6 +85,34 @@ export function SettingsView({ currentUser, onSaved }) {
       </div>
 
       <div className="settings-grid">
+        <section className="settings-card" data-reveal>
+          <p className="settings-label">Appearance</p>
+          <h3>Theme</h3>
+          <p className="settings-note">Light keeps text dark on a pale background. Dark is the current TaskFlow look. System follows this device.</p>
+          <div className="theme-choice" role="radiogroup" aria-label="Theme">
+            {[
+              ["light", "Light"],
+              ["dark", "Dark"],
+              ["system", "System"],
+            ].map(([value, text]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={themeChoice === value}
+                className={themeChoice === value ? "is-selected" : ""}
+                onClick={() => {
+                  saveThemeChoice(value);
+                  setThemeChoice(value);
+                  applyTheme(value);
+                }}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        </section>
+
         <section className="settings-card profile-card" data-reveal>
           <p className="settings-label">Profile</p>
           <div className="settings-profile"><span className="settings-avatar">{currentUser.name.charAt(0).toUpperCase()}</span><div><h3>{currentUser.name}</h3><p>Workspace owner</p></div></div>

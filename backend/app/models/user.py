@@ -22,4 +22,4 @@ class User(Base):
     browser_notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
     reminder_timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC", server_default="UTC")
 
-    tasks: Mapped[list["Task"]] = relationship(back_populates="user")
+    tasks: Mapped[list["Task"]] = relationship(back_populates="user", foreign_keys="Task.user_id")

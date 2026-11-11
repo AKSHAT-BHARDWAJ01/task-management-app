@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -60,20 +60,19 @@ export function useMotionSystem(rootRef, viewKey) {
       );
 
       gsap.utils.toArray("[data-reveal]").forEach((element) => {
+        const alreadyVisible = element.getBoundingClientRect().top < window.innerHeight * 0.96;
         gsap.fromTo(
           element,
-          { autoAlpha: 0, y: 36 },
+          { autoAlpha: 0, y: 28 },
           {
             autoAlpha: 1,
             y: 0,
-            duration: 0.8,
+            duration: 0.45,
             ease: "power3.out",
             clearProps: "transform,opacity,visibility",
-            scrollTrigger: {
-              trigger: element,
-              start: "top 88%",
-              once: true,
-            },
+            scrollTrigger: alreadyVisible
+              ? undefined
+              : { trigger: element, start: "top 92%", once: true },
           },
         );
       });
@@ -88,44 +87,16 @@ export function useMotionSystem(rootRef, viewKey) {
 }
 
 /**
- * Drops the current view under gravity, swaps it, then useMotionSystem
- * bounces the next view into place.
+ * Switches the visible page immediately. A delayed animation used to ignore
+ * later clicks, so the sidebar could land on the wrong view or stop responding.
  */
-export function useGravityNavigation(rootRef, activeView, setActiveView) {
-  const isTransitioning = useRef(false);
-
+export function useGravityNavigation(_rootRef, activeView, setActiveView) {
   return useCallback(
     (nextView) => {
-      if (nextView === activeView || isTransitioning.current) return;
-
-      const root = rootRef.current;
-      if (!root || prefersReducedMotion()) {
-        setActiveView(nextView);
-        return;
-      }
-
-      const elements = root.querySelectorAll("[data-gravity], [data-reveal]");
-      if (!elements.length) {
-        setActiveView(nextView);
-        return;
-      }
-
-      isTransitioning.current = true;
-      gsap.to(elements, {
-        autoAlpha: 0,
-        y: () => window.innerHeight * gsap.utils.random(0.38, 0.7),
-        rotation: () => gsap.utils.random(-8, 8),
-        duration: 0.52,
-        ease: "power3.in",
-        stagger: { amount: 0.12, from: "random" },
-        overwrite: true,
-        onComplete: () => {
-          window.scrollTo({ top: 0 });
-          setActiveView(nextView);
-          isTransitioning.current = false;
-        },
-      });
+      if (!nextView || nextView === activeView) return;
+      window.scrollTo({ top: 0, left: 0 });
+      setActiveView(nextView);
     },
-    [activeView, rootRef, setActiveView],
+    [activeView, setActiveView],
   );
 }
