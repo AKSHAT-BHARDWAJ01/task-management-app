@@ -11,12 +11,14 @@ Companion runbook: [`STAGING_DEPLOYMENT.md`](./STAGING_DEPLOYMENT.md).
 
 | Resource | Name | Status |
 |----------|------|--------|
-| Supabase project | `taskflow-staging` | **Created and verified** (empty DB; no migrations run) |
-| Vercel API project | `task-manager-api-staging` | **Created and verified** (undeployed) |
+| Supabase project | `taskflow-staging` | **Created and verified** |
+| Vercel API project | `task-manager-api-staging` | **Deployed** |
+| Staging API origin | `https://task-manager-api-staging.vercel.app` | **Live** |
+| Staging API base | `https://task-manager-api-staging.vercel.app/api` | **Live** |
 | GitHub Environment | `staging` | **Created and verified** |
-| Scheduler workflow | `environment: staging` | Local uncommitted change |
-| Staging API deploy | — | **Not attempted** (separate approval) |
-| Staging `init_db` / migrations | — | **Not attempted** (separate approval) |
+| Scheduler workflow | `environment: staging` | On `feature/unified-sync` (not default branch) |
+| Staging API deploy | `task-manager-api-staging` | **Deployed** |
+| Staging `init_db` / migrations | Cold start / sync tables | **Applied on deploy** |
 
 Production (untouched):
 
@@ -41,12 +43,12 @@ Production (untouched):
 | Vercel team | `akshat-s-workspace` (Hobby) |
 | Git repository | `AKSHAT-BHARDWAJ01/task-management-app` |
 | Root directory | `backend` |
-| Production Branch (staging project) | Currently `main` (cannot set `feature/unified-sync` until pushed) |
-| Auto-deploy protection | Ignore Build Step = `exit 0` (blocks git-triggered builds) |
-| Generated staging API URL | **Pending first approved deploy** |
+| Production Branch (staging project) | Staging deploys via CLI / approved manual deploy |
+| Auto-deploy protection | Ignore Build Step may still block git-triggered builds |
+| Generated staging API URL | `https://task-manager-api-staging.vercel.app` |
+| Staging API base (clients) | `https://task-manager-api-staging.vercel.app/api` |
 | GitHub Environment | `staging` |
-| Environment secret names set | `CRON_SECRET` |
-| Environment secret pending | `TASKFLOW_API_URL` (needs staging URL after deploy) |
+| Environment secret names set | `CRON_SECRET`, `TASKFLOW_API_URL` |
 
 ## Backend compatibility (connection mode)
 
@@ -70,23 +72,23 @@ required. Do not enable paid dedicated poolers.
 Workflow: `.github/workflows/scheduler-tick.yml` uses `environment: staging`.
 
 - Secrets resolve from Environment `staging` only.
-- `CRON_SECRET` is set; `TASKFLOW_API_URL` awaits staging URL.
+- `CRON_SECRET` and `TASKFLOW_API_URL` are set (`TASKFLOW_API_URL` = staging
+  origin **without** `/api`).
 - **Schedule limitation:** `on.schedule` runs only from the repository default
   branch. This workflow is not on the default branch yet — ten-minute schedule
   is inactive. Do not merge to `main` without separate approval.
-- After deploy: set `TASKFLOW_API_URL` to the staging origin **without** `/api`.
+- `workflow_dispatch` via GitHub API also requires the workflow file on the
+  default branch; until then, trigger `/api/internal/jobs/tick` locally with
+  `CRON_SECRET` (never commit or log the value).
+- Note: `vercel env pull` cannot decrypt Production **Secret**-type values
+  (`CRON_SECRET` comes back as `[SENSITIVE]`).
 
-## Future approved deployment steps (do not run yet)
+## Remaining follow-ups
 
-1. Push `feature/unified-sync` only after explicit push approval (APK ignored).
-2. Set staging project Production Branch to `feature/unified-sync`.
-3. Clear or replace Ignore Build Step for an approved deploy only.
-4. Deploy **only** `task-manager-api-staging` (never production API).
-5. Cold start runs `init_db()` against staging Postgres.
-6. Verify `GET /` and sync tables in staging DB console.
-7. Set GitHub `TASKFLOW_API_URL` to the new staging origin.
-8. Optional `workflow_dispatch` against staging.
-9. Smoke checklist in `STAGING_DEPLOYMENT.md`.
+1. Keep production (`coral-five`) untouched; clients must not enable unified sync against it.
+2. Merge or copy `scheduler-tick.yml` to the default branch only with approval (enables schedule + `workflow_dispatch`).
+3. To tick manually today: `POST /api/internal/jobs/tick` with `Authorization: Bearer <CRON_SECRET>` (value is Vercel/GitHub Secret-type; not recoverable via `vercel env pull`).
+4. Optional smoke checklist in `STAGING_DEPLOYMENT.md`.
 
 ## Rollback (staging only)
 
@@ -106,7 +108,7 @@ Workflow: `.github/workflows/scheduler-tick.yml` uses `environment: staging`.
 - [x] Staging Supabase ref ≠ production ref
 - [x] Staging DB host ≠ production DB host
 - [x] Staging Vercel project ID ≠ production API project
-- [x] Staging URL ≠ `task-manager-api-coral-five.vercel.app` (staging undeployed)
+- [x] Staging URL ≠ `task-manager-api-coral-five.vercel.app` (`task-manager-api-staging.vercel.app`)
 - [x] Staging JWT / CRON generated independently; production env names unchanged
 - [x] Production Vercel env vars not modified this session
 - [x] No production data imported
