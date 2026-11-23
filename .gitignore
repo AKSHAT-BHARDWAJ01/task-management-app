@@ -249,3 +249,10 @@ __marimo__/
 
 # Nested clone should not live inside this repo
 grocify-expo/
+
+# Local Android/Expo APK artifacts
+*.apk
+
+
+# Supabase CLI local cache
+supabase/.temp/

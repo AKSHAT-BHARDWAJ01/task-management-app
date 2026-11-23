@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from app.services.reminder_engine import ReminderPreferences, plan_reminders
+from app.services.reminder_engine import ReminderPreferences, plan_milestone_reminders, plan_reminders
 
 
 class TaskStub:
@@ -11,6 +11,15 @@ class TaskStub:
         self.status = kwargs.get("status", "pending")
         self.priority = kwargs.get("priority", "medium")
         self.due_date = kwargs.get("due_date")
+
+
+class MilestoneStub:
+    def __init__(self, id, name, target_date, project_id=1, completed_at=None):
+        self.id = id
+        self.name = name
+        self.target_date = target_date
+        self.project_id = project_id
+        self.completed_at = completed_at
 
 
 def plan(tasks, now, preferences=None, existing=None):
@@ -97,6 +106,32 @@ class ReminderEngineTests(unittest.TestCase):
         now = datetime(2026, 10, 27, 8, 59, tzinfo=timezone.utc)
         task = TaskStub(id=10, title="Morning task", due_date=datetime(2026, 10, 27))
         self.assertEqual(plan([task], now), [])
+
+    def test_milestone_approaching_and_overdue_windows(self):
+        milestone = MilestoneStub(id=3, name="Beta launch", target_date=datetime(2026, 10, 28))
+        approaching = datetime(2026, 10, 27, 9, 5, tzinfo=timezone.utc)
+        overdue = datetime(2026, 10, 29, 9, 5, tzinfo=timezone.utc)
+        prefs = ReminderPreferences(timezone="UTC")
+        first = plan_milestone_reminders([milestone], prefs, approaching, set())
+        second = plan_milestone_reminders([milestone], prefs, overdue, set())
+        self.assertEqual(len(first), 1)
+        self.assertIn("milestone-upcoming:3:", first[0].idempotency_key)
+        self.assertEqual(first[0].project_id, 1)
+        self.assertEqual(len(second), 1)
+        self.assertIn("milestone-overdue:3:", second[0].idempotency_key)
+
+    def test_completed_milestones_are_skipped(self):
+        milestone = MilestoneStub(
+            id=4,
+            name="Done gate",
+            target_date=datetime(2026, 10, 20),
+            completed_at=datetime(2026, 10, 19),
+        )
+        now = datetime(2026, 10, 27, 12, 0, tzinfo=timezone.utc)
+        self.assertEqual(
+            plan_milestone_reminders([milestone], ReminderPreferences(timezone="UTC"), now, set()),
+            [],
+        )
 
 
 if __name__ == "__main__":

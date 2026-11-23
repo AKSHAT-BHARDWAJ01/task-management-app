@@ -1,0 +1,36 @@
+name: Scheduler tick
+
+# Runs reminders, the daily digest, and push delivery on the API.
+# GitHub may delay scheduled runs by several minutes; the API tick is idempotent,
+# so late or repeated runs never duplicate reminders.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: scheduler-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    # Staging-only credentials live in the GitHub Environment "staging".
+    # Scheduled runs only execute from the repository default branch; until this
+    # workflow exists on that branch, use workflow_dispatch after push approval.
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call the staging scheduler endpoint
+        env:
+          API_URL: ${{ secrets.TASKFLOW_API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::notice::staging TASKFLOW_API_URL or CRON_SECRET is not set; skipping."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 90 \
+            -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${API_URL%/}/api/internal/jobs/tick"

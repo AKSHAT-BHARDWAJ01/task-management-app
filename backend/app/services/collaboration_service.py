@@ -22,6 +22,8 @@ from app.models import (
     WorkspaceInvitation,
     WorkspaceMembership,
 )
+from app.services import event_service, notification_service
+from app.services.notification_service import INVITATIONS_LINK, WORKSPACES_LINK, project_link, workspace_link
 
 INVITE_DAYS = 7
 WORKSPACE_ROLES = {"owner", "admin", "member"}
@@ -248,6 +250,9 @@ def create_team_workspace(db: Session, user: User, name: str, description: str |
     db.add(workspace)
     db.flush()
     db.add(WorkspaceMembership(workspace_id=workspace.id, user_id=user.id, role="owner", joined_at=_now()))
+    event_service.emit(
+        db, "workspace.created", entity_type="workspace", entity_id=workspace.id, actor_id=user.id, workspace_id=workspace.id
+    )
     db.commit()
     db.refresh(workspace)
     return _workspace_payload(db, workspace, "owner")
@@ -261,6 +266,9 @@ def update_workspace(db: Session, user: User, workspace_id: int, data: dict) -> 
     if "description" in data:
         workspace.description = (data["description"] or "").strip() or None
     workspace.updated_at = _now()
+    event_service.emit(
+        db, "workspace.updated", entity_type="workspace", entity_id=workspace.id, actor_id=user.id, workspace_id=workspace.id
+    )
     db.commit()
     db.refresh(workspace)
     return _workspace_payload(db, workspace, row.role)
@@ -271,6 +279,11 @@ def delete_workspace(db: Session, user: User, workspace_id: int) -> None:
     _require_role(row, {"owner"})
     if workspace.workspace_type == "personal":
         raise CollaborationError(403, "The personal workspace cannot be deleted")
+    member_ids = db.scalars(select(WorkspaceMembership.user_id).where(WorkspaceMembership.workspace_id == workspace.id)).all()
+    for member_id in member_ids:
+        event_service.emit(
+            db, "workspace.deleted", entity_type="workspace", entity_id=workspace.id, actor_id=user.id, user_id=member_id
+        )
     db.query(Task).filter(Task.workspace_id == workspace.id).update(
         {Task.project_id: None, Task.workspace_id: None, Task.milestone_id: None},
         synchronize_session=False,
@@ -298,7 +311,15 @@ def transfer_ownership(db: Session, user: User, workspace_id: int, new_owner_id:
     row.role = "admin"
     workspace.owner_id = new_owner_id
     workspace.updated_at = _now()
+    event = event_service.emit(
+        db, "workspace.role_changed", entity_type="workspace_member", entity_id=new_owner_id, actor_id=user.id,
+        workspace_id=workspace.id, data={"user_id": new_owner_id, "role": "owner", "previous_owner_id": user.id},
+    )
     db.commit()
+    notification_service.notify_users(
+        db, [new_owner_id], event, type="workspace", title="You now own a workspace",
+        message=f"{user.name} transferred ownership of {workspace.name} to you.", link=workspace_link(workspace.id),
+    )
     return _workspace_payload(db, workspace, "admin")
 
 
@@ -338,8 +359,17 @@ def change_member_role(db: Session, user: User, workspace_id: int, member_user_i
     if actor.role == "admin" and target.role != "member":
         raise CollaborationError(403, "Admins can only manage members")
     target.role = role
+    event = event_service.emit(
+        db, "workspace.role_changed", entity_type="workspace_member", entity_id=member_user_id, actor_id=user.id,
+        workspace_id=workspace_id, data={"user_id": member_user_id, "role": role},
+    )
     db.commit()
-    return {"user_id": target.user_id, "role": target.role}
+    notification_service.notify_users(
+        db, [member_user_id], event, type="workspace", title="Your role changed",
+        message=f"{user.name} made you {'an admin' if role == 'admin' else 'a member'} of {workspace.name}.",
+        link=workspace_link(workspace_id),
+    )
+    return {"user_id": member_user_id, "role": role}
 
 
 def remove_member(db: Session, user: User, workspace_id: int, member_user_id: int) -> None:
@@ -368,7 +398,19 @@ def remove_member(db: Session, user: User, workspace_id: int, member_user_id: in
             ProjectMembership.project_id.in_(project_ids),
             ProjectMembership.user_id == member_user_id,
         ).delete(synchronize_session=False)
+    event_service.emit(
+        db, "workspace.member_removed", entity_type="workspace_member", entity_id=member_user_id, actor_id=user.id,
+        workspace_id=workspace_id, data={"user_id": member_user_id},
+    )
+    removed = event_service.emit(
+        db, "workspace.member_removed", entity_type="workspace_member", entity_id=member_user_id, actor_id=user.id,
+        workspace_id=workspace_id, user_id=member_user_id, data={"user_id": member_user_id},
+    )
     db.commit()
+    notification_service.notify_users(
+        db, [member_user_id], removed, type="workspace", title="Removed from a workspace",
+        message=f"{user.name} removed you from {workspace.name}.", link=WORKSPACES_LINK,
+    )
 
 
 def _active_invite(db: Session, workspace_id: int, email: str) -> WorkspaceInvitation | None:
@@ -407,8 +449,23 @@ def create_invitation(db: Session, user: User, workspace_id: int, email: str, ro
         created_at=_now(),
     )
     db.add(invite)
+    db.flush()
+    event_service.emit(
+        db, "invitation.created", entity_type="invitation", entity_id=invite.id, actor_id=user.id, workspace_id=workspace_id
+    )
+    personal = None
+    if existing_user is not None:
+        personal = event_service.emit(
+            db, "invitation.created", entity_type="invitation", entity_id=invite.id, actor_id=user.id,
+            workspace_id=workspace_id, user_id=existing_user.id,
+        )
     db.commit()
     db.refresh(invite)
+    if personal is not None:
+        notification_service.notify_users(
+            db, [existing_user.id], personal, type="invitation", title="Workspace invitation",
+            message=f"{user.name} invited you to join {workspace.name}.", link=INVITATIONS_LINK,
+        )
     return {**_invite_payload(db, invite), "token": token, "delivery": "link"}
 
 
@@ -448,8 +505,8 @@ def _invite_payload(db: Session, invite: WorkspaceInvitation) -> dict:
     }
 
 
-def revoke_invitation(db: Session, user: User, workspace_id: int, invitation_id: int) -> dict:
-    _, actor = require_workspace_member(db, workspace_id, user)
+def revoke_invitation(db: Session, user: User, workspace_id: int, invitation_id: int, *, notify: bool = True) -> dict:
+    workspace, actor = require_workspace_member(db, workspace_id, user)
     _require_role(actor, {"owner", "admin"})
     invite = db.get(WorkspaceInvitation, invitation_id)
     if invite is None or invite.workspace_id != workspace_id:
@@ -457,12 +514,27 @@ def revoke_invitation(db: Session, user: User, workspace_id: int, invitation_id:
     if invite.accepted_at:
         raise CollaborationError(409, "That invitation was already accepted")
     invite.revoked_at = _now()
+    event_service.emit(
+        db, "invitation.revoked", entity_type="invitation", entity_id=invite.id, actor_id=user.id, workspace_id=workspace_id
+    )
+    invitee = db.scalar(select(User).where(User.email == invite.invited_email))
+    personal = None
+    if invitee is not None:
+        personal = event_service.emit(
+            db, "invitation.revoked", entity_type="invitation", entity_id=invite.id, actor_id=user.id,
+            workspace_id=workspace_id, user_id=invitee.id,
+        )
     db.commit()
+    if notify and personal is not None:
+        notification_service.notify_users(
+            db, [invitee.id], personal, type="invitation", title="Invitation withdrawn",
+            message=f"Your invitation to {workspace.name} was withdrawn.", link=None,
+        )
     return _invite_payload(db, invite)
 
 
 def resend_invitation(db: Session, user: User, workspace_id: int, invitation_id: int) -> dict:
-    revoke_invitation(db, user, workspace_id, invitation_id)
+    revoke_invitation(db, user, workspace_id, invitation_id, notify=False)
     old = db.get(WorkspaceInvitation, invitation_id)
     return create_invitation(db, user, workspace_id, old.invited_email, old.intended_role)
 
@@ -495,32 +567,110 @@ def preview_invitation(db: Session, token: str) -> dict:
 
 
 def accept_invitation(db: Session, user: User, token: str) -> dict:
-    invite = _invite_by_token(db, token)
+    return _accept(db, user, _invite_by_token(db, token))
+
+
+def decline_invitation(db: Session, user: User, token: str) -> None:
+    _decline(db, user, _invite_by_token(db, token))
+
+
+def _check_usable(invite: WorkspaceInvitation | None, user: User) -> WorkspaceInvitation:
+    # The same 404 for a missing invite and someone else's keeps ids unguessable.
+    if invite is None or invite.invited_email.lower() != user.email.lower():
+        raise CollaborationError(404, "Invitation not found")
+    if invite.revoked_at:
+        raise CollaborationError(410, "This invitation was revoked")
+    if invite.accepted_at:
+        raise CollaborationError(409, "This invitation has already been used")
+    if invite.expires_at <= _now():
+        raise CollaborationError(410, "This invitation has expired")
+    return invite
+
+
+def list_my_invitations(db: Session, user: User) -> list[dict]:
+    rows = db.scalars(
+        select(WorkspaceInvitation)
+        .where(
+            func.lower(WorkspaceInvitation.invited_email) == user.email.lower(),
+            WorkspaceInvitation.accepted_at.is_(None),
+            WorkspaceInvitation.revoked_at.is_(None),
+            WorkspaceInvitation.expires_at > _now(),
+        )
+        .order_by(WorkspaceInvitation.created_at.desc())
+    ).all()
+    items = []
+    for invite in rows:
+        workspace = db.get(Workspace, invite.workspace_id)
+        if workspace is None or membership(db, invite.workspace_id, user.id):
+            continue
+        items.append({
+            "id": invite.id,
+            "workspace_id": invite.workspace_id,
+            "workspace_name": workspace.name,
+            "intended_role": invite.intended_role,
+            "expires_at": invite.expires_at,
+            "created_at": invite.created_at,
+            "invited_by": user_brief(db.get(User, invite.invited_by)),
+        })
+    return items
+
+
+def respond_to_invitation(db: Session, user: User, invitation_id: int, accept: bool) -> dict | None:
+    invite = _check_usable(db.get(WorkspaceInvitation, invitation_id), user)
+    if accept:
+        return _accept(db, user, invite)
+    _decline(db, user, invite)
+    return None
+
+
+def _accept(db: Session, user: User, invite: WorkspaceInvitation) -> dict:
     if user.email.lower() != invite.invited_email.lower():
         raise CollaborationError(403, "Sign in with the invited email address to accept")
     if membership(db, invite.workspace_id, user.id):
         invite.accepted_at = _now()
         db.commit()
         return {"workspace_id": invite.workspace_id, "already_member": True}
+    role = invite.intended_role if invite.intended_role in {"admin", "member"} else "member"
     db.add(
         WorkspaceMembership(
             workspace_id=invite.workspace_id,
             user_id=user.id,
-            role=invite.intended_role if invite.intended_role in {"admin", "member"} else "member",
+            role=role,
             invited_by=invite.invited_by,
             joined_at=_now(),
         )
     )
     invite.accepted_at = _now()
+    accepted = event_service.emit(
+        db, "invitation.accepted", entity_type="invitation", entity_id=invite.id, actor_id=user.id,
+        workspace_id=invite.workspace_id,
+    )
+    event_service.emit(
+        db, "workspace.member_added", entity_type="workspace_member", entity_id=user.id, actor_id=user.id,
+        workspace_id=invite.workspace_id, data={"user_id": user.id, "role": role},
+    )
     db.commit()
+    workspace = db.get(Workspace, invite.workspace_id)
+    notification_service.notify_users(
+        db, [invite.invited_by], accepted, type="workspace", title="Invitation accepted",
+        message=f"{user.name} joined {workspace.name if workspace else 'your workspace'}.",
+        link=workspace_link(invite.workspace_id),
+    )
     return {"workspace_id": invite.workspace_id, "already_member": False}
 
 
-def decline_invitation(db: Session, user: User, token: str) -> None:
-    invite = _invite_by_token(db, token)
+def _decline(db: Session, user: User, invite: WorkspaceInvitation) -> None:
     if user.email.lower() != invite.invited_email.lower():
         raise CollaborationError(403, "Sign in with the invited email address to decline")
     invite.revoked_at = _now()
+    event_service.emit(
+        db, "invitation.declined", entity_type="invitation", entity_id=invite.id, actor_id=user.id,
+        workspace_id=invite.workspace_id,
+    )
+    event_service.emit(
+        db, "invitation.declined", entity_type="invitation", entity_id=invite.id, actor_id=user.id,
+        workspace_id=invite.workspace_id, user_id=user.id,
+    )
     db.commit()
 
 
@@ -677,9 +827,17 @@ def create_project(db: Session, user: User, workspace_id: int, data: dict) -> di
         entity_id=project.id,
         metadata={"name": project.name},
     )
+    _emit_project(db, "project.created", project, user.id)
     db.commit()
     db.refresh(project)
     return _project_payload(db, project, user.id)
+
+
+def _emit_project(db: Session, event_type: str, project: Project, actor_id: int, data: dict | None = None):
+    return event_service.emit(
+        db, event_type, entity_type="project", entity_id=project.id, actor_id=actor_id,
+        workspace_id=project.workspace_id, project_id=project.id, data={"project_id": project.id, **(data or {})},
+    )
 
 
 def get_project(db: Session, user: User, project_id: int) -> dict:
@@ -696,6 +854,7 @@ def update_project(db: Session, user: User, project_id: int, data: dict) -> dict
     previous_lead = project.lead_user_id
     previous_status = project.status
     previous_health = project.health
+    previous_visibility = project.visibility
     if "name" in data and data["name"]:
         project.name = data["name"].strip()
     if "description" in data:
@@ -748,6 +907,13 @@ def update_project(db: Session, user: User, project_id: int, data: dict) -> dict
         entity_id=project.id,
         metadata=metadata,
     )
+    _emit_project(db, "project.updated", project, user.id, {"change": event})
+    if previous_visibility != project.visibility:
+        # Workspace-wide so people who just lost or gained access refresh their lists.
+        event_service.emit(
+            db, "project.updated", entity_type="project", entity_id=project.id, actor_id=user.id,
+            workspace_id=project.workspace_id, data={"project_id": project.id, "visibility_changed": True},
+        )
     db.commit()
     db.refresh(project)
     return _project_payload(db, project, user.id)
@@ -769,8 +935,18 @@ def archive_project(db: Session, user: User, project_id: int, restore: bool = Fa
         entity_id=project.id,
         metadata={"name": project.name},
     )
+    published = _emit_project(db, "project.restored" if restore else "project.archived", project, user.id)
     db.commit()
+    if not restore:
+        notification_service.notify_users(
+            db, project_member_ids(db, project.id), published, type="project", title="Project archived",
+            message=f"{user.name} archived {project.name}.", link=project_link(project.id),
+        )
     return _project_payload(db, project, user.id)
+
+
+def project_member_ids(db: Session, project_id: int) -> set[int]:
+    return notification_service.project_member_ids(db, project_id)
 
 
 def delete_project(db: Session, user: User, project_id: int) -> None:
@@ -792,6 +968,10 @@ def delete_project(db: Session, user: User, project_id: int) -> None:
         entity_type="project",
         entity_id=project.id,
         metadata={"name": project.name},
+    )
+    event_service.emit(
+        db, "project.deleted", entity_type="project", entity_id=project.id, actor_id=user.id,
+        workspace_id=project.workspace_id, data={"project_id": project.id},
     )
     db.delete(project)
     db.commit()
@@ -825,7 +1005,12 @@ def add_project_member(db: Session, user: User, project_id: int, member_user_id:
         entity_id=member_user_id,
         metadata={"name": person.name if person else "Member", "role": role},
     )
+    published = _emit_project(db, "project.member_added", project, user.id, {"user_id": member_user_id, "role": role})
     db.commit()
+    notification_service.notify_users(
+        db, [member_user_id], published, type="project", title="Added to a project",
+        message=f"{user.name} added you to {project.name} as {role}.", link=project_link(project.id),
+    )
     return get_project(db, user, project.id)
 
 
@@ -848,7 +1033,17 @@ def remove_project_member(db: Session, user: User, project_id: int, member_user_
         entity_id=member_user_id,
         metadata={"name": person.name if person else "Member"},
     )
+    _emit_project(db, "project.member_removed", project, user.id, {"user_id": member_user_id})
+    removed = event_service.emit(
+        db, "project.member_removed", entity_type="project_member", entity_id=member_user_id, actor_id=user.id,
+        workspace_id=project.workspace_id, project_id=project.id, user_id=member_user_id,
+        data={"project_id": project.id, "user_id": member_user_id},
+    )
     db.commit()
+    notification_service.notify_users(
+        db, [member_user_id], removed, type="project", title="Removed from a project",
+        message=f"{user.name} removed you from {project.name}.", link=workspace_link(project.workspace_id),
+    )
     return get_project(db, user, project.id)
 
 
@@ -916,6 +1111,7 @@ def create_milestone(db: Session, user: User, project_id: int, data: dict) -> di
         entity_id=milestone.id,
         metadata={"name": milestone.name},
     )
+    _emit_milestone(db, "milestone.created", project, milestone, user.id)
     db.commit()
     db.refresh(milestone)
     return _milestone_payload(db, milestone)
@@ -927,6 +1123,7 @@ def update_milestone(db: Session, user: User, project_id: int, milestone_id: int
     if milestone is None or milestone.project_id != project.id:
         raise CollaborationError(404, "Milestone not found")
     previous_target = milestone.target_date
+    previous_completed = milestone.completed_at
     if "name" in data and data["name"]:
         milestone.name = data["name"].strip()
     if "description" in data:
@@ -937,12 +1134,16 @@ def update_milestone(db: Session, user: User, project_id: int, milestone_id: int
         milestone.completed_at = _now()
     if data.get("completed") is False:
         milestone.completed_at = None
+    newly_completed = data.get("completed") is True and previous_completed is None
     milestone.updated_at = _now()
     event = "milestone_updated"
     if previous_target != milestone.target_date:
         event = "milestone_target_changed"
     if data.get("completed") is True:
         event = "milestone_completed"
+    published = _emit_milestone(
+        db, "milestone.completed" if newly_completed else "milestone.updated", project, milestone, user.id
+    )
     record_activity(
         db,
         workspace_id=project.workspace_id,
@@ -954,7 +1155,21 @@ def update_milestone(db: Session, user: User, project_id: int, milestone_id: int
         metadata={"name": milestone.name},
     )
     db.commit()
+    if newly_completed:
+        notification_service.notify_users(
+            db, project_member_ids(db, project.id), published, type="milestone", title="Milestone completed",
+            message=f"{user.name} completed the milestone {milestone.name} in {project.name}.",
+            link=project_link(project.id),
+        )
     return _milestone_payload(db, milestone)
+
+
+def _emit_milestone(db: Session, event_type: str, project: Project, milestone: Milestone, actor_id: int):
+    return event_service.emit(
+        db, event_type, entity_type="milestone", entity_id=milestone.id, actor_id=actor_id,
+        workspace_id=project.workspace_id, project_id=project.id,
+        data={"project_id": project.id, "milestone_id": milestone.id},
+    )
 
 
 def delete_milestone(db: Session, user: User, project_id: int, milestone_id: int) -> None:
@@ -963,6 +1178,7 @@ def delete_milestone(db: Session, user: User, project_id: int, milestone_id: int
     if milestone is None or milestone.project_id != project.id:
         raise CollaborationError(404, "Milestone not found")
     db.query(Task).filter(Task.milestone_id == milestone.id).update({Task.milestone_id: None}, synchronize_session=False)
+    _emit_milestone(db, "milestone.deleted", project, milestone, user.id)
     db.delete(milestone)
     db.commit()
 

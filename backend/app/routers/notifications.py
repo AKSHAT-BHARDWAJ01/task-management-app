@@ -10,6 +10,7 @@ from app.schemas.notification import (
     ReminderPreferencesUpdate,
     SyncRequest,
     SyncResult,
+    UnreadCount,
 )
 from app.services import notification_service
 from app.services.auth_service import get_current_user
@@ -27,6 +28,11 @@ def get_notifications(
     current_user: User = Depends(get_current_user),
 ):
     return notification_service.list_notifications(db, current_user.id, limit, offset)
+
+
+@notifications_router.get("/unread-count", response_model=UnreadCount)
+def get_unread_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return {"unread_count": notification_service.unread_count(db, current_user.id)}
 
 
 @notifications_router.post("/sync", response_model=SyncResult)
@@ -54,11 +60,12 @@ def put_preferences(
     current_user: User = Depends(get_current_user),
 ):
     data = payload.model_dump(exclude_unset=True)
-    if "daily_reminder_time" in data and data["daily_reminder_time"] is not None:
-        try:
-            parse_reminder_time(data["daily_reminder_time"])
-        except ValueError:
-            raise HTTPException(status_code=422, detail="Enter a reminder time like 09:00.")
+    for field in ("daily_reminder_time", "quiet_hours_start", "quiet_hours_end"):
+        if data.get(field) is not None:
+            try:
+                parse_reminder_time(data[field])
+            except ValueError:
+                raise HTTPException(status_code=422, detail="Enter a time like 09:00.")
     return notification_service.update_preferences(db, current_user, data)
 
 

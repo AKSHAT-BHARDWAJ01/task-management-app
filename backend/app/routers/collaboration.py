@@ -179,6 +179,22 @@ def decline_invitation(payload: TokenBody, db: Session = Depends(get_db), curren
     return {"message": "Invitation declined"}
 
 
+@collaboration_router.get("/invitations/pending")
+def get_my_invitations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return collaboration_service.list_my_invitations(db, current_user)
+
+
+@collaboration_router.post("/invitations/{invitation_id}/accept")
+def accept_my_invitation(invitation_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return collaboration_service.respond_to_invitation(db, current_user, invitation_id, True)
+
+
+@collaboration_router.post("/invitations/{invitation_id}/decline")
+def decline_my_invitation(invitation_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    collaboration_service.respond_to_invitation(db, current_user, invitation_id, False)
+    return {"message": "Invitation declined"}
+
+
 @collaboration_router.get("/workspaces/{workspace_id}/projects")
 def get_projects(
     workspace_id: int,

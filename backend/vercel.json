@@ -4,5 +4,11 @@
     "app/main.py": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/internal/jobs/tick",
+      "schedule": "30 2 * * *"
+    }
+  ]
 }

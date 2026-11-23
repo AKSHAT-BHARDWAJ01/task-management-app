@@ -66,5 +66,5 @@ def delete_task(
         raise HTTPException(status_code=404, detail="Task not found")
     if not task_service.can_edit_task(db, current_user.id, task):
         raise HTTPException(status_code=403, detail="You cannot edit this task")
-    task_service.delete_task(db, task)
+    task_service.delete_task(db, task, current_user.id)
     return {"message": "Task deleted successfully"}

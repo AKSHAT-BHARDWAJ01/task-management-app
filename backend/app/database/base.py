@@ -57,12 +57,14 @@ def init_db() -> None:
         WorkspaceMembership,
     )
     from app.models.notification import Notification  # noqa: F401
+    from app.models.sync import DevicePushToken, DomainEvent, JobLease, NotificationDelivery  # noqa: F401
     from app.models.task import Task  # noqa: F401
     from app.models.user import User  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     _add_missing_task_columns()
     _add_missing_user_columns()
+    _add_missing_notification_columns()
 
 
 def _add_missing_task_columns() -> None:
@@ -105,6 +107,12 @@ def _add_missing_user_columns() -> None:
         "overdue_reminders_enabled": flag,
         "browser_notifications_enabled": flag_off,
         "reminder_timezone": "VARCHAR(64) NOT NULL DEFAULT 'UTC'",
+        "upcoming_reminders_enabled": flag,
+        "due_soon_reminders_enabled": flag,
+        "push_enabled": flag,
+        "quiet_hours_enabled": flag_off,
+        "quiet_hours_start_minutes": "INTEGER NOT NULL DEFAULT 1320",
+        "quiet_hours_end_minutes": "INTEGER NOT NULL DEFAULT 420",
     }
     with engine.begin() as connection:
         if "name" not in existing_columns:
@@ -123,3 +131,25 @@ def _add_missing_user_columns() -> None:
         for column, definition in additions.items():
             if column not in existing_columns:
                 connection.execute(text(f"ALTER TABLE users ADD COLUMN {column} {definition}"))
+
+
+def _add_missing_notification_columns() -> None:
+    """Add the entity and link fields used by the shared notification centre."""
+    if "notification" not in inspect(engine).get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspect(engine).get_columns("notification")}
+    additions = {
+        "event_type": "VARCHAR(64)",
+        "actor_user_id": "INTEGER",
+        "workspace_id": "INTEGER",
+        "project_id": "INTEGER",
+        "entity_type": "VARCHAR(32)",
+        "entity_id": "INTEGER",
+        "link": "VARCHAR(255)",
+        "dismissed_at": "DATETIME" if is_sqlite else "TIMESTAMP",
+    }
+    with engine.begin() as connection:
+        for column, definition in additions.items():
+            if column not in existing_columns:
+                connection.execute(text(f"ALTER TABLE notification ADD COLUMN {column} {definition}"))

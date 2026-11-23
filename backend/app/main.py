@@ -11,6 +11,7 @@ from app.database import init_db
 from app.routers.auth import auth_router
 from app.routers.collaboration import collaboration_router
 from app.routers.notifications import notifications_router
+from app.routers.sync import devices_router, events_router, internal_router
 from app.routers.tasks import tasks_router
 from app.services.collaboration_service import CollaborationError
 
@@ -63,6 +64,9 @@ app.include_router(tasks_router)
 app.include_router(auth_router)
 app.include_router(notifications_router)
 app.include_router(collaboration_router)
+app.include_router(events_router)
+app.include_router(devices_router)
+app.include_router(internal_router)
 
 
 @app.exception_handler(CollaborationError)

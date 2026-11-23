@@ -2,7 +2,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Task, User
-from app.services import collaboration_service, notification_service
+from app.services import collaboration_service, event_service, notification_service
 from app.services.collaboration_service import CollaborationError
 
 
@@ -60,14 +60,19 @@ def create_task(db: Session, user_id: int, data: dict) -> Task:
     db.add(task)
     db.flush()
     collaboration_service.record_task_activity(db, user, task, "task_created")
+    event_service.emit_task(db, "task.created", task, user_id)
+    assigned = None
     if task.assignee_id:
         assignee = db.get(User, task.assignee_id)
         collaboration_service.record_task_activity(
             db, user, task, "task_assigned", {"assignee": assignee.name if assignee else "someone"}
         )
+        assigned = event_service.emit_task(db, "task.assigned", task, user_id, {"assignee_id": task.assignee_id})
     db.commit()
     db.refresh(task)
-    notification_service.record_created(db, task)
+    notification_service.record_created(db, task, user_id)
+    if assigned is not None:
+        notification_service.notify_assignment(db, task, assigned)
     return task
 
 
@@ -80,6 +85,9 @@ def update_task(db: Session, task: Task, data: dict, actor_id: int | None = None
         data = collaboration_service.validate_task_links(db, user, data, existing=task)
     previous_status = task.status
     previous_assignee = task.assignee_id
+    previous_project = task.project_id
+    previous_workspace = task.workspace_id
+    changed = sorted(field for field in TASK_FIELDS if field in data and getattr(task, field) != data[field])
     for field in TASK_FIELDS:
         if field in data:
             setattr(task, field, data[field].strip() if field == "title" and data[field] else data[field])
@@ -89,14 +97,38 @@ def update_task(db: Session, task: Task, data: dict, actor_id: int | None = None
         assignee = db.get(User, task.assignee_id) if task.assignee_id else None
         extra = {"assignee": assignee.name if assignee else "Unassigned"}
     collaboration_service.record_task_activity(db, user, task, event, extra)
+    if previous_status != "completed" and task.status == "completed":
+        public_type = "task.completed"
+    elif previous_status == "completed" and task.status != "completed":
+        public_type = "task.reopened"
+    else:
+        public_type = "task.updated"
+    published = event_service.emit_task(
+        db,
+        public_type,
+        task,
+        actor_id,
+        {"changed": changed},
+        previous_project_id=previous_project,
+        previous_workspace_id=previous_workspace,
+    )
+    assigned = None
+    if task.assignee_id and task.assignee_id != previous_assignee:
+        assigned = event_service.emit_task(db, "task.assigned", task, actor_id, {"assignee_id": task.assignee_id})
     db.commit()
     db.refresh(task)
-    if previous_status != "completed" and task.status == "completed":
-        notification_service.record_completion(db, task)
-    elif previous_status == "completed" and task.status != "completed":
-        notification_service.record_reopened(db, task)
+    if public_type == "task.completed":
+        notification_service.record_completion(db, task, actor_id)
+        notification_service.notify_task_collaborators(db, task, published, "completed", "completed")
+    elif public_type == "task.reopened":
+        notification_service.record_reopened(db, task, actor_id)
+        notification_service.notify_task_collaborators(db, task, published, "reopened", "reopened")
     else:
-        notification_service.record_updated(db, task)
+        notification_service.record_updated(db, task, actor_id)
+        if assigned is None:
+            notification_service.notify_task_collaborators(db, task, published, "updated", "updated")
+    if assigned is not None:
+        notification_service.notify_assignment(db, task, assigned)
     return task
 
 
@@ -112,9 +144,16 @@ def _task_event(previous_status: str, previous_assignee: int | None, task: Task)
     return "task_updated"
 
 
-def delete_task(db: Session, task: Task) -> None:
-    notification_service.record_deleted(db, task)
-    notification_service.detach_task(db, task.user_id, task.id)
+def delete_task(db: Session, task: Task, actor_id: int | None = None) -> None:
+    actor_id = actor_id or task.user_id
+    notification_service.record_deleted(db, task, actor_id)
+    published = event_service.emit_task(db, "task.deleted", task, actor_id)
+    assignee_id = task.assignee_id
+    db.commit()
+    if assignee_id and assignee_id != task.user_id:
+        notification_service.notify_task_collaborators(db, task, published, "deleted", "deleted")
+    for user_id in {task.user_id, assignee_id} - {None}:
+        notification_service.detach_task(db, user_id, task.id)
     db.delete(task)
     db.commit()
 

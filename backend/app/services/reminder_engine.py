@@ -7,10 +7,13 @@ notice. They never get a one-hour or "due now" alert, because no time was set.
 A deadline with a clock time can use the 24-hour, 1-hour, and due-now windows.
 
 This module does not send anything. The caller stores each result once, using
-the idempotency key, so a refresh or a second tab cannot create it again.
+the idempotency key, so a refresh, a second tab, or a repeated scheduler run
+cannot create it again. Plans are recalculated from the current tasks on every
+run, so a completed or deleted task simply stops producing reminders and a
+moved deadline produces keys for the new date.
 
-Reminders are only calculated while the API is handling a signed-in request.
-Nothing here runs while the browser is closed.
+Plans are made both when a client syncs and by the server scheduler
+(job_service.run_tick), so reminders arrive while every client is closed.
 """
 
 from __future__ import annotations
@@ -26,6 +29,8 @@ class ReminderPreferences:
     daily_reminder_minutes: int = 9 * 60
     overdue_reminders_enabled: bool = True
     timezone: str = "UTC"
+    upcoming_reminders_enabled: bool = True
+    due_soon_reminders_enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -35,6 +40,8 @@ class PlannedNotification:
     title: str
     message: str
     task_id: int | None
+    milestone_id: int | None = None
+    project_id: int | None = None
 
 
 def resolve_zone(name: str) -> ZoneInfo:
@@ -90,6 +97,8 @@ def _plan_date_only(task, due_day, today, preferences, due_today, overdue, plann
         due_today.append(task)
         return
     if due_day == today + timedelta(days=1):
+        if not preferences.upcoming_reminders_enabled:
+            return
         planned.append(PlannedNotification(
             idempotency_key=f"upcoming:{task.id}:{_day_key(task.due_date)}:1d",
             type="deadline",
@@ -115,6 +124,8 @@ def _plan_timed(task, due, now, preferences, overdue, planned) -> None:
     delta = due - now
     due_key = task.due_date.isoformat()
     if timedelta(hours=1) < delta <= timedelta(hours=24):
+        if not preferences.upcoming_reminders_enabled:
+            return
         when = "tomorrow" if due.date() == now.date() + timedelta(days=1) else "in 24 hours"
         planned.append(PlannedNotification(
             idempotency_key=f"upcoming:{task.id}:{due_key}:24h",
@@ -124,6 +135,8 @@ def _plan_timed(task, due, now, preferences, overdue, planned) -> None:
             task_id=task.id,
         ))
     elif timedelta(0) < delta <= timedelta(hours=1):
+        if not preferences.due_soon_reminders_enabled:
+            return
         planned.append(PlannedNotification(
             idempotency_key=f"soon:{task.id}:{due_key}:1h",
             type="deadline",
@@ -132,6 +145,8 @@ def _plan_timed(task, due, now, preferences, overdue, planned) -> None:
             task_id=task.id,
         ))
     elif timedelta(hours=-1) <= delta <= timedelta(0):
+        if not preferences.due_soon_reminders_enabled:
+            return
         planned.append(PlannedNotification(
             idempotency_key=f"due:{task.id}:{due_key}:now",
             type="due_today",
@@ -211,3 +226,56 @@ def parse_reminder_time(value: str) -> int:
 def format_reminder_time(minutes: int) -> str:
     bounded = min(max(int(minutes), 0), 23 * 60 + 59)
     return f"{bounded // 60:02d}:{bounded % 60:02d}"
+
+
+def plan_milestone_reminders(
+    milestones,
+    preferences: ReminderPreferences,
+    now_utc: datetime,
+    existing_keys: set[str],
+) -> list[PlannedNotification]:
+    """Date-only reminders for open project milestones with a target date."""
+    zone = resolve_zone(preferences.timezone)
+    today = local_now(now_utc, zone).date()
+    planned: list[PlannedNotification] = []
+
+    for milestone in milestones:
+        if getattr(milestone, "completed_at", None) is not None:
+            continue
+        target = getattr(milestone, "target_date", None)
+        if target is None:
+            continue
+        due_day = as_local(target, zone).date()
+        name = getattr(milestone, "name", "Milestone")
+        milestone_id = getattr(milestone, "id", None)
+        project_id = getattr(milestone, "project_id", None)
+        if due_day == today + timedelta(days=1):
+            if not preferences.upcoming_reminders_enabled:
+                continue
+            planned.append(
+                PlannedNotification(
+                    idempotency_key=f"milestone-upcoming:{milestone_id}:{due_day.isoformat()}:1d",
+                    type="milestone",
+                    title="Milestone approaching",
+                    message=f"Milestone approaching: {name} is due tomorrow.",
+                    task_id=None,
+                    milestone_id=milestone_id,
+                    project_id=project_id,
+                )
+            )
+        elif due_day < today and preferences.overdue_reminders_enabled:
+            days = (today - due_day).days
+            day_word = "day" if days == 1 else "days"
+            planned.append(
+                PlannedNotification(
+                    idempotency_key=f"milestone-overdue:{milestone_id}:{due_day.isoformat()}",
+                    type="milestone",
+                    title="Milestone overdue",
+                    message=f"Milestone overdue: {name} by {days} {day_word}.",
+                    task_id=None,
+                    milestone_id=milestone_id,
+                    project_id=project_id,
+                )
+            )
+
+    return [item for item in planned if item.idempotency_key not in existing_keys]
