@@ -105,6 +105,7 @@ export const taskApi = {
 
 export const notificationApi = {
   list: ({ offset = 0, limit = 30 } = {}) => rootRequest(`/notifications?limit=${limit}&offset=${offset}`),
+  unreadCount: () => rootRequest("/notifications/unread-count"),
   sync: (timezone) => rootRequest("/notifications/sync", { method: "POST", body: JSON.stringify({ timezone }) }),
   preferences: () => rootRequest("/notifications/preferences"),
   savePreferences: (preferences) => rootRequest("/notifications/preferences", { method: "PUT", body: JSON.stringify(preferences) }),
@@ -112,6 +113,27 @@ export const notificationApi = {
   markAllRead: () => rootRequest("/notifications/read-all", { method: "POST" }),
   dismiss: (id) => rootRequest(`/notifications/${id}`, { method: "DELETE" }),
 };
+
+/** Cursor event feed — only call when unified sync is enabled for a non-production API. */
+export const eventsApi = {
+  list: ({ after, limit = 100 } = {}) => {
+    const params = new URLSearchParams();
+    if (after !== undefined && after !== null) params.set("after", String(after));
+    if (limit) params.set("limit", String(limit));
+    const query = params.toString();
+    return rootRequest(`/events${query ? `?${query}` : ""}`);
+  },
+};
+
+export const devicesApi = {
+  list: () => rootRequest("/devices"),
+  registerPushToken: (body) => rootRequest("/devices/push-tokens", { method: "POST", body: JSON.stringify(body) }),
+  unregisterPushToken: (deviceId) => rootRequest(`/devices/push-tokens/${encodeURIComponent(deviceId)}`, { method: "DELETE" }),
+  webPushConfig: () => rootRequest("/devices/web-push/config"),
+  testPush: () => rootRequest("/devices/test-push", { method: "POST" }),
+};
+
+export { configuredApiRoot as apiRoot };
 
 async function authRequest(path, payload) {
   const response = await fetchWithTimeout(`${AUTH_BASE_URL}${path}`, {

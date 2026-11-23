@@ -16,6 +16,7 @@ import { TaskList } from "../components/TaskList";
 import { useGravityNavigation, useMotionSystem } from "../motion/useMotionSystem";
 import { showBrowserNotifications } from "../notifications/browserNotifications";
 import { useToast } from "../notifications/ToastProvider";
+import { useEventSync } from "../sync/useEventSync";
 
 const emptyStats = {
   total_tasks: 0,
@@ -155,6 +156,24 @@ export function Home({ currentUser, onLogout, inviteToken = "", onInviteDone }) 
   useEffect(() => {
     loadWorkspaces().catch((requestError) => setError(requestError.message));
   }, [loadWorkspaces]);
+
+  const handleSyncScopes = useCallback((scopes) => {
+    if (scopes.includes("tasks") || scopes.includes("stats")) {
+      void loadDashboard();
+    }
+    if (scopes.includes("workspaces") || scopes.includes("projects")) {
+      void loadWorkspaces().catch(() => {});
+    }
+    if (scopes.includes("notifications")) {
+      setNoticeRevision((current) => current + 1);
+    }
+  }, [loadDashboard, loadWorkspaces]);
+
+  useEventSync({
+    enabled: Boolean(currentUser?.id),
+    userId: currentUser?.id,
+    onScopes: handleSyncScopes,
+  });
 
   const myTasks = useMemo(
     () => tasks.filter((task) => task.status === "pending" || task.status === "in-progress"),

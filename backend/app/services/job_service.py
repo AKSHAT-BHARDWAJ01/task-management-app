@@ -51,10 +51,16 @@ def acquire_lease(db: Session, name: str, seconds: int, now: datetime | None = N
 
 
 def release_lease(db: Session, name: str, holder: str, result: dict) -> None:
+    # Unlock on the acquire clock (last_started_at), not wall clock. Setting
+    # locked_until=_now() left injected test times unable to re-acquire.
     db.execute(
         update(JobLease)
         .where(JobLease.name == name, JobLease.holder == holder)
-        .values(locked_until=_now(), last_finished_at=_now(), last_result=json.dumps(result, default=str)[:4000])
+        .values(
+            locked_until=JobLease.last_started_at,
+            last_finished_at=_now(),
+            last_result=json.dumps(result, default=str)[:4000],
+        )
     )
     db.commit()
 

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 
-import { notificationApi } from "../api/taskApi";
+import { apiRoot, notificationApi } from "../api/taskApi";
 import {
   browserNotificationPermission,
   browserNotificationSupport,
   requestBrowserNotificationPermission,
 } from "../notifications/browserNotifications";
 import { useToast } from "../notifications/ToastProvider";
+import { isUnifiedSyncEnabled } from "../sync/featureFlags";
+import { subscribeWebPush, unsubscribeWebPush, webPushSupported } from "../sync/webPush";
 import { applyTheme, readThemeChoice, saveThemeChoice } from "../theme";
 
 const fallbackPreferences = {
@@ -15,6 +17,12 @@ const fallbackPreferences = {
   overdue_reminders_enabled: true,
   browser_notifications_enabled: false,
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+  upcoming_reminders_enabled: true,
+  due_soon_reminders_enabled: true,
+  push_enabled: true,
+  quiet_hours_enabled: false,
+  quiet_hours_start: "22:00",
+  quiet_hours_end: "07:00",
 };
 
 export function SettingsView({ currentUser, onSaved }) {
@@ -25,6 +33,8 @@ export function SettingsView({ currentUser, onSaved }) {
   const [status, setStatus] = useState("loading");
   const supported = browserNotificationSupport();
   const permission = browserNotificationPermission();
+  const syncEnabled = isUnifiedSyncEnabled(apiRoot);
+  const pushCapable = webPushSupported();
 
   useEffect(() => {
     let stopped = false;
@@ -62,6 +72,9 @@ export function SettingsView({ currentUser, onSaved }) {
 
   async function enableBrowserNotifications(checked) {
     if (!checked) {
+      if (syncEnabled) {
+        try { await unsubscribeWebPush(); } catch { /* keep preference update */ }
+      }
       save({ ...preferences, browser_notifications_enabled: false });
       return;
     }
@@ -71,6 +84,16 @@ export function SettingsView({ currentUser, onSaved }) {
         ? "Browser notifications are blocked. Allow them in the browser settings."
         : "Browser notifications are not available here.");
       return;
+    }
+    if (syncEnabled && pushCapable) {
+      const result = await subscribeWebPush();
+      if (!result.ok && result.reason !== "server_disabled") {
+        toast.error("Couldn't register browser push for this device.");
+        return;
+      }
+      if (result.reason === "server_disabled") {
+        toast.info("In-page notifications will work; server Web Push is not configured yet.");
+      }
     }
     save({ ...preferences, browser_notifications_enabled: true });
   }
@@ -142,12 +165,43 @@ export function SettingsView({ currentUser, onSaved }) {
                 <i />
               </label>
               <label className="settings-toggle">
-                <span><strong>Browser notifications</strong><small>{supported ? "Show reminders outside the page while TaskFlow is open" : "This browser cannot show system notifications"}</small></span>
+                <span><strong>Upcoming (24h) reminders</strong><small>Warn me the day before a deadline</small></span>
+                <input type="checkbox" checked={preferences.upcoming_reminders_enabled !== false} onChange={(event) => save({ ...preferences, upcoming_reminders_enabled: event.target.checked })} />
+                <i />
+              </label>
+              <label className="settings-toggle">
+                <span><strong>Due-soon (1h) reminders</strong><small>Warn me about timed deadlines an hour ahead</small></span>
+                <input type="checkbox" checked={preferences.due_soon_reminders_enabled !== false} onChange={(event) => save({ ...preferences, due_soon_reminders_enabled: event.target.checked })} />
+                <i />
+              </label>
+              <label className="settings-toggle">
+                <span><strong>Quiet hours</strong><small>Defer push delivery overnight</small></span>
+                <input type="checkbox" checked={Boolean(preferences.quiet_hours_enabled)} onChange={(event) => save({ ...preferences, quiet_hours_enabled: event.target.checked })} />
+                <i />
+              </label>
+              {preferences.quiet_hours_enabled ? (
+                <div className="settings-time-row">
+                  <label className="settings-time">
+                    <span>Quiet from</span>
+                    <input type="time" value={preferences.quiet_hours_start || "22:00"} onChange={(event) => save({ ...preferences, quiet_hours_start: event.target.value })} />
+                  </label>
+                  <label className="settings-time">
+                    <span>Quiet until</span>
+                    <input type="time" value={preferences.quiet_hours_end || "07:00"} onChange={(event) => save({ ...preferences, quiet_hours_end: event.target.value })} />
+                  </label>
+                </div>
+              ) : null}
+              <label className="settings-toggle">
+                <span><strong>Browser notifications</strong><small>{supported ? (syncEnabled ? "Opt in to Web Push when the sync API is available" : "Show reminders in this browser while TaskFlow is open") : "This browser cannot show system notifications"}</small></span>
                 <input type="checkbox" checked={preferences.browser_notifications_enabled} disabled={!supported || permission === "denied"} onChange={(event) => enableBrowserNotifications(event.target.checked)} />
                 <i />
               </label>
               {permission === "denied" && <p className="settings-note">Notifications are blocked for this site. Allow them in the browser settings, then come back.</p>}
-              <p className="settings-note">Reminders are checked while TaskFlow is open. They are not delivered after you close the browser.</p>
+              <p className="settings-note">
+                {syncEnabled
+                  ? "Server-side reminders run even when TaskFlow is closed. The inbox stays available if you deny browser permission."
+                  : "Legacy mode: reminders sync while TaskFlow is open. Enable VITE_ENABLE_UNIFIED_SYNC against a local or staging API for background delivery."}
+              </p>
             </>
           )}
           <label className="settings-toggle">
